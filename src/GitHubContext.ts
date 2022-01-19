@@ -24,10 +24,10 @@ async function getIssues(page: number) {
  * @returns raw diff data
  */
 async function getDiff() {
-    if (github.payload?.push?.commits?.length) {
+    if (github.payload?.commits?.length) {
         return await octokit.repos.compareCommitsWithBasehead({
             ...repoContext.repoObject,
-            basehead: `${github.payload.push.before}...${process.env.GITHUB_SHA}`,
+            basehead: `${github.payload.before}...${process.env.GITHUB_SHA}`,
             headers: {Accept: 'application/vnd.github.diff'},
             method: 'GET'
         });

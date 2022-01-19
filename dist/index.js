@@ -297,10 +297,10 @@ function getIssues(page) {
  * @returns raw diff data
  */
 function getDiff() {
-    var _a, _b, _c;
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        if ((_c = (_b = (_a = github_1.context.payload) === null || _a === void 0 ? void 0 : _a.push) === null || _b === void 0 ? void 0 : _b.commits) === null || _c === void 0 ? void 0 : _c.length) {
-            return yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { basehead: `${github_1.context.payload.push.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
+        if ((_b = (_a = github_1.context.payload) === null || _a === void 0 ? void 0 : _a.commits) === null || _b === void 0 ? void 0 : _b.length) {
+            return yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { basehead: `${github_1.context.payload.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
         }
     });
 }
@@ -19074,8 +19074,8 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-const main = __nccwpck_require__(7451);
-main().then();
+const entry = __nccwpck_require__(7451);
+entry().then();
 
 })();
 

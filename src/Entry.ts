@@ -1,2 +1,2 @@
-const main = require('./ActionMain')
-main().then();
+const entry = require('./ActionMain')
+entry().then();
