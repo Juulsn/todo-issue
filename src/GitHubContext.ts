@@ -90,7 +90,7 @@ async function getLabels() {
     if (argumentContext.label === false)
         return [];
 
-    if (!argumentContext.label === true)
+    if (argumentContext.label === true)
         return [await getDefaultLabel()]
 
     else

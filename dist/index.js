@@ -346,7 +346,7 @@ function getLabels() {
     return __awaiter(this, void 0, void 0, function* () {
         if (ArgumentContext_1.argumentContext.label === false)
             return [];
-        if (!ArgumentContext_1.argumentContext.label === true)
+        if (ArgumentContext_1.argumentContext.label === true)
             return [yield getDefaultLabel()];
         else
             return ArgumentContext_1.argumentContext.label;
