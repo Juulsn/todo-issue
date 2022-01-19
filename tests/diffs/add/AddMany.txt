@@ -1,0 +1,30 @@
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO number title 1 ?!)$(&
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO 2 Title number 2657œ
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO Title with number 3!()%
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO Title without number 4 +#.,
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO Title number and 5 «”<!>(/˙\<>)

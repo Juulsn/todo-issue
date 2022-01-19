@@ -1,0 +1,17 @@
+diff --git a/Car_Small.cs b/Car_Double.cs
+index cb736e7..d2ec7a2 100644
+--- a/Car_Small.cs
++++ b/Car_Double.cs
+@@ -1,7 +1,11 @@
+ public class Car
+ {
++    // TODO should we reinvent the gear here??
+     private static void Accelerate()
+     {
++    	// TODO should we reinvent the gear here??
+         this.speed++;
+     }
++
++    // TODO should we reinvent the gear here??
+ }
+\ No newline at end of file

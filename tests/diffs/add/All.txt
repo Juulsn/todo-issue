@@ -1,0 +1,137 @@
+diff --git a/Car_Small.cs b/Car_Double.cs
+index 7b92e05..1d869c5 100644
+--- a/Car_Small.cs
++++ b/Car_Double.cs
+@@ -1,3 +1,5 @@
+ public class Car
+ {
++    // TODO should we reinvent the gear here??
++    // TODO a totally different TODO in the next Line
+ }
+\ No newline at end of file
+diff --git a/Car_Small.cs b/Car_Double.cs
+index 7b92e05..8690a02 100644
+--- a/Car_Small.cs
++++ b/Car_Double.cs
+@@ -1,3 +1,5 @@
+ public class Car
+ {
++    // TODO should we reinvent the gear here??
++    // A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body A long random body
+ }
+\ No newline at end of file
+diff --git a/Car_Small.cs b/Car_Double.cs
+index cb736e7..d2ec7a2 100644
+--- a/Car_Small.cs
++++ b/Car_Double.cs
+@@ -1,7 +1,11 @@
+ public class Car
+ {
++    // TODO should we reinvent the gear here??
+     private static void Accelerate()
+     {
++    	// TODO should we reinvent the gear here??
+         this.speed++;
+     }
++
++    // TODO should we reinvent the gear here??
+ }
+\ No newline at end of file
+diff --git a/Car_Small.cs b/Car_Double.cs
+index b37c29b..1967a74 100644
+--- a/Car_Small.cs
++++ b/Car_Double.cs
+@@ -5,4 +5,6 @@ public class Car
+     {
+         this.speed++;
+     }
++
++    // TODO should we reinvent the gear here??
+ }
+\ No newline at end of file
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO number title 1
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO 2 Title number
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO Title with number 3
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO Title without number 4
+diff --git a/file.txt b/file.txt
+index 0d43cbb..4e652e9 100644
+--- a/file.txt
++++ b/file.txt
+@@ -4,21 +4,22 @@
++ // TODO Title number and 5
+diff --git a/BaseHTML.html b/RenameHTML.html
+index 566549b..d42fdad 100644
+--- a/BaseHTML.html
++++ b/RenameHTML.html
+@@ -3,6 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <title>Title</title>
++    <!--TODO this is a todo tag from a HTML FILE-->
+ </head>
+ <body>
+ diff --git a/Car_Simple.cs b/Car_Expanded.cs
+ index f7975fb..50956b7 100644
+ --- a/Car_Simple.cs
+ +++ b/Car_Expanded.cs
+ @@ -9,4 +9,6 @@ public class Car
+      }
+
+      // todo implement a break!!!
+ +
+ +    // BUG adding a issue with the BUG TAG
+  }
+ \ No newline at end of file
+diff --git a/Car_Simple.cs b/Car_Expanded.cs
+index f7975fb..11447f5 100644
+--- a/Car_Simple.cs
++++ b/Car_Expanded.cs
+@@ -9,4 +9,5 @@ public class Car
+     }
+
+     // todo implement a break!!!
++    // some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text some super long text
+ }
+\ No newline at end of file
+diff --git a/.travis.yml b/.travis.yml
+index 0d43cbb..4e652e9 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -4,21 +4,22 @@
+language: node_js
+
+ node_js:
+   - "8"
+-
++
+ notifications:
+   disabled: true
+-
++ // TODO Create a new GITHUB issue
+ branches:
+   except:
+     - /^vd+.d+.d+$/
+-
+ script:
+   - npm test
+   - codecov

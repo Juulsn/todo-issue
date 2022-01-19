@@ -1,0 +1,12 @@
+diff --git a/Car_Small.cs b/Car_Double.cs
+index b37c29b..1967a74 100644
+--- a/Car_Small.cs
++++ b/Car_Double.cs
+@@ -5,4 +5,6 @@ public class Car
+     {
+         this.speed++;
+     }
++
++    // TODO should we reinvent the gear here??
+ }
+\ No newline at end of file

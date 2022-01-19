@@ -1,0 +1,11 @@
+diff --git a/Car_Double.cs b/Car_Small.cs
+index eae13ff..5c45d68 100644
+--- a/Car_Double.cs
++++ b/Car_Small.cs
+@@ -1,4 +1,4 @@
+ public class Car
+ {
+-    // TODO should we reinvent the gear here??
++    // TODO should we reinvent the gear here appending some string
+ }
+\ No newline at end of file

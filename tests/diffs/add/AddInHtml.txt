@@ -1,0 +1,12 @@
+diff --git a/BaseHTML.html b/RenameHTML.html
+index 566549b..d42fdad 100644
+--- a/BaseHTML.html
++++ b/RenameHTML.html
+@@ -3,6 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <title>Title</title>
++    <!--TODO this is a todo tag from a HTML FILE-->
+ </head>
+ <body>
+ 

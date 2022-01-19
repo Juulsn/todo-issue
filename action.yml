@@ -1,0 +1,36 @@
+name: 'todo-issue'
+description: 'Converts TODOs to Issues'
+author: 'Julian Bildner'
+inputs:
+  keywords:
+    description: List of keywords for comments to be added which starts with one of these words.
+    required: false
+    default: 'TODO'
+  bodyKeywords:
+    description: List of keywords for comments which starts with one of these words.
+    required: false
+    default: ''
+  autoAssign:
+    description: Boolean or list of assignees which should be added to the new created issue. If true the commiter of the change will be added
+    required: false
+  excludePattern:
+    required: false
+    description: Regex which defines which paths to exclude (e.g. '^(src/someSubFolder/|anotherParentFolder/|LICENSE.txt)')
+  caseSensitive:
+    description: Boolean which sets whether the tags should equal the keywords and bodytags list in terms of case sensitivity. Defaults to true
+    required: false
+  label:
+    description: Boolean or a list of labels which should be added on creating a new issue. Defaults to 'todo :spiral_notepad:'
+    required: false
+  blobLines:
+    description: false or max number of last changed lines which should be previewed in a issue. Defaults to 5
+    required: false
+  titleSimilarity:
+    description: false or number in percent of similarity which should be used for merging issues on creation. Defaults to 80
+    required: false
+  reopenClosed:
+    description: Boolean whether a issue should be reopened if it was already closed, but the title is similar.
+    required: false
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
