@@ -297,10 +297,19 @@ function getIssues(page) {
  * @returns raw diff data
  */
 function getDiff() {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        if ((_b = (_a = github_1.context.payload) === null || _a === void 0 ? void 0 : _a.commits) === null || _b === void 0 ? void 0 : _b.length) {
-            return yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { basehead: `${github_1.context.payload.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
+        if (github_1.context.payload.commits.length) {
+            console.log(`${github_1.context.payload.commits.length} commits pushed`);
+            return yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { 
+                // if payload.created is true it is most likely a new repo. But we don't want the initial commit to trigger create new issues, so it's okay if payload.before is 'empty'
+                basehead: `${github_1.context.payload.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
+        }
+        else {
+            console.log('One commit added');
+            const commit = yield octokit.repos.getCommit(Object.assign(Object.assign({}, repoContext.repoObject), { ref: github_1.context.payload.head_commit.id }));
+            if (commit.data.parents.length > 1) // we don't want merges to add issues (again)
+                return;
+            return yield octokit.repos.getCommit(Object.assign(Object.assign({}, repoContext.repoObject), { ref: github_1.context.payload.head_commit.id, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
         }
     });
 }

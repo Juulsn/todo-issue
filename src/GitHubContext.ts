@@ -24,10 +24,29 @@ async function getIssues(page: number) {
  * @returns raw diff data
  */
 async function getDiff() {
-    if (github.payload?.commits?.length) {
+    if (github.payload.commits.length) {
+        console.log(`${github.payload.commits.length} commits pushed`)
         return await octokit.repos.compareCommitsWithBasehead({
             ...repoContext.repoObject,
+            // if payload.created is true it is most likely a new repo. But we don't want the initial commit to trigger create new issues, so it's okay if payload.before is 'empty'
             basehead: `${github.payload.before}...${process.env.GITHUB_SHA}`,
+            headers: {Accept: 'application/vnd.github.diff'},
+            method: 'GET'
+        });
+    } else {
+        console.log('One commit added')
+
+        const commit = await octokit.repos.getCommit({
+            ...repoContext.repoObject,
+            ref: github.payload.head_commit.id,
+        });
+
+        if(commit.data.parents.length > 1) // we don't want merges to add issues (again)
+            return
+
+        return await octokit.repos.getCommit({
+            ...repoContext.repoObject,
+            ref: github.payload.head_commit.id,
             headers: {Accept: 'application/vnd.github.diff'},
             method: 'GET'
         });
