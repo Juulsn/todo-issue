@@ -1,6 +1,6 @@
 import {Change, Chunk} from "parse-diff";
 import {argumentContext} from "./ArgumentContext";
-import {escapeForRegExp} from "./helpers";
+import {assignFlow, escapeForRegExp} from "./helpers";
 
 const repoContext = require("./RepoContext");
 const {getUsername} = require("./GitHubContext");
@@ -50,6 +50,8 @@ function getDetails(chunk: Chunk, line: number) {
   // Generate a string that expresses who the issue is assigned to
   const assignedToString = generateAssignedTo(username, number)
 
+  const assignees = assignFlow(username);
+
   let range: false | string
   if (!argumentContext.blobLines) {
     // Don't show the blob
@@ -64,7 +66,8 @@ function getDetails(chunk: Chunk, line: number) {
     username,
     assignedToString,
     number,
-    range
+    range,
+    assignees
   }
 }
 

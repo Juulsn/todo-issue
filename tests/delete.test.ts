@@ -25,7 +25,8 @@ describe("Delete Test", () => {
         existingIssues.push({
             title: 'a totally different TODO in the next Line',
             number: 2,
-            state: "open"
+            state: "open",
+            assignees: []
         })
         await test("Delete", {closeTodo: 1})
     })

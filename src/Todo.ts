@@ -2,6 +2,7 @@ import {Chunk, File} from "parse-diff";
 import {argumentContext} from "./ArgumentContext";
 import * as FileHelper from './FileHelper'
 import {importEverything} from "./AllImporter";
+import {stripAt} from "./helpers";
 
 const repoContext = require("./RepoContext");
 const  {checkForBody, getDetails} = require("./TodoDetails");
@@ -61,15 +62,20 @@ async function generateTodosFromCommit() {
         // Get the details of this commit or PR
         const details = getDetails(chunk, changedLine)
 
+        const bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
+
+        // add assignees mentioned in comment
+        `${title}\n${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))?.map(value => stripAt(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value))
+
         console.log(`Item found [${title}] in [${repoContext.full_name}]`)
 
         // Run the handler for this webhook listener
         todos.push({
           type: change.type,
           keyword: matches.groups.keyword,
-          bodyComment: checkForBody(chunk.changes, index, matches.groups.beforeTag),
           filename: file.to,
           sha: process.env.GITHUB_SHA,
+          bodyComment,
           changedLine,
           title,
           chunk,
@@ -97,6 +103,7 @@ export declare type Todo = {
   similarTodo: Todo | undefined
   username: string
   assignedToString: string
+  assignees: string[]
   number: number | false
   issueId: number | false
   open: boolean | undefined

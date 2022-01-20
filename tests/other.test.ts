@@ -25,7 +25,8 @@ describe("Other TODO Change Tests", () => {
         existingIssues.push({
             title: 'TODO should we reinvent the gear here?? üäö',
             number: 241,
-            state: "open"
+            state: "open",
+            assignees: []
         })
         await test("MoveComment")
     })

@@ -63,7 +63,8 @@ module.exports = async () => {
                     title: each.title,
                     //bodyComment: each.body,
                     issueId: each.number,
-                    open: each.state === "open"
+                    open: each.state === "open",
+                    assignees: each.assignees.map((assignee: any) => assignee.login)
                 } as Todo)
         })
     }

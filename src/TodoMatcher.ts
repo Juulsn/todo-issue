@@ -124,6 +124,7 @@ function cleanUpTodos(found: Todo[], existing: Todo[]) {
             if(todo === parent) return
             todo.similarTodo = parent;
             todo.type = "addReference"
+            todo.assignees.forEach(value => !todo.similarTodo?.assignees.includes(value) && todo.similarTodo?.assignees.push(value))
         })
     })
 

@@ -59,7 +59,8 @@ describe("Add Test", () => {
         existingIssues.push({
             title: 'should we reinvent the gear here??',
             number: 2,
-            state: "open"
+            state: "open",
+            assignees: []
         })
 
         todoHandler.addReferenceTodo.mockImplementationOnce((todo: Todo) => {
@@ -73,7 +74,8 @@ describe("Add Test", () => {
         existingIssues.push({
             title: 'should we reinvent the gear here??',
             number: 2,
-            state: "closed"
+            state: "closed",
+            assignees: []
         })
 
         todoHandler.addReferenceTodo.mockImplementationOnce((todo: Todo) => {
@@ -95,7 +97,8 @@ describe("Add Test", () => {
         existingIssues.push({
             title: 'should we reinvent the gear here..',
             number: 3,
-            state: "closed"
+            state: "closed",
+            assignees: []
         })
         await test("AddTwoSimilar", {addReferenceTodo: 2, reopenTodo: 1})
     })

@@ -18,17 +18,18 @@ export function addAt(str: string) {
     return str
 }
 
-const stripAt = (str: string) => {
+export function stripAt(str: string) {
     if (str.startsWith('@')) return str.split('@')[1]
     return str
 }
 
-export function assignFlow(author: string) {
+export function assignFlow(author: string) : string[] {
     if (argumentContext.autoAssign === true) {
-        return {assignee: author}
+        return [author]
     } else if (argumentContext.autoAssign) {
-        return {assignees: argumentContext.autoAssign.map((n: string) => stripAt(n))}
+        return [argumentContext.autoAssign.map((n: string) => stripAt(n))]
     }
+    return []
 }
 
 export function lineBreak(body: string) {

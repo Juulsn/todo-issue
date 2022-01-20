@@ -15,8 +15,7 @@ export async function addTodo(todo: Todo) {
 
   const body = lineBreak(template.issue(
       {
-        owner: repoContext.owner,
-        repo: repoContext.repo,
+        ...repoContext.repoObject,
         body: todo.bodyComment,
         ...todo
       })
@@ -27,8 +26,7 @@ export async function addTodo(todo: Todo) {
   await sleep(1000);
 
   const val = await octokit.issues.create({
-    owner: repoContext.owner,
-    repo: repoContext.repo,
+    ...repoContext.repoObject,
     title: todo.title,
     body,
     labels: todo.labels,
@@ -50,10 +48,10 @@ export async function updateTodo(todo: Todo) {
   console.debug(`Updating issue [${todo.issueId}]`)
 
   return await octokit.issues.update({
-    owner: repoContext.owner,
-    repo: repoContext.repo,
+    ...repoContext.repoObject,
     issue_number: todo.issueId,
     title: todo.title,
+    // assignees will not get an update because it was probably just a typo fix
   })
 }
 
@@ -66,14 +64,14 @@ export async function closeTodo(todo: Todo) {
 
   console.debug(`Closing issue [${todo.issueId}]`)
 
+  // TODO Send comment before close?
+
   return await octokit.issues.update({
     owner: repoContext.owner,
     repo: repoContext.repo,
     issue_number: todo.issueId,
     state: 'closed'
   })
-
-  // Send Comment?
 }
 
 export async function reopenTodo(todo: Todo) {
@@ -86,18 +84,27 @@ export async function reopenTodo(todo: Todo) {
   console.debug(`Reopening issue [${todo.issueId}]`)
 
   return await octokit.issues.update({
-    owner: repoContext.owner,
-    repo: repoContext.repo,
+    ...repoContext.repoObject,
     issue_number: todo.issueId,
     state: 'open'
-  })}
+  })
+}
+
+async function updateAssignees(todo: Todo){
+  if(!todo.assignees?.length) return
+
+  return await octokit.issues.update({
+    ...repoContext.repoObject,
+    issue_number: todo.issueId,
+    assignees: todo.assignees,
+  })
+}
 
 export async function addReferenceTodo(todo: Todo) {
 
   const body = lineBreak(template.comment(
       {
-        owner: repoContext.owner,
-        repo: repoContext.repo,
+        ...repoContext.repoObject,
         body: todo.bodyComment,
         ...todo
       })
@@ -110,11 +117,14 @@ export async function addReferenceTodo(todo: Todo) {
 
   console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`)
 
-  return octokit.issues.createComment({
-    owner: repoContext.owner,
-    repo: repoContext.repo,
+  const comment = await octokit.issues.createComment({
+    ...repoContext.repoObject,
     issue_number: todo.similarTodo.issueId,
     body
   })
+
+  await updateAssignees(todo.similarTodo)
+
+  return comment
 
 }

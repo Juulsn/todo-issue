@@ -25,7 +25,8 @@ describe("Rename Test", () => {
         existingIssues.push({
             title: 'TODO should we reinvent the gear here??',
             number: 1,
-            state: "open"
+            state: "open",
+            assignees: []
         })
         await test("HugeRename", {addTodo: 1, closeTodo: 1}) // well, thats the expected behavior, would be cool to track even such changes :) maybe by line index and let's say 50 % similarity?
     })
@@ -34,7 +35,8 @@ describe("Rename Test", () => {
         existingIssues.push({
             title: 'TODO should we reinvent the gear here??',
             number: 8,
-            state: "open"
+            state: "open",
+            assignees: []
         })
         await test("SmallRename", {updateTodo: 1})
     })

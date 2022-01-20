@@ -81,7 +81,8 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
                 title: each.title,
                 //bodyComment: each.body,
                 issueId: each.number,
-                open: each.state === "open"
+                open: each.state === "open",
+                assignees: each.assignees.map((assignee) => assignee.login)
             });
         });
     }
@@ -424,6 +425,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const FileHelper = __importStar(__nccwpck_require__(5708));
 const AllImporter_1 = __nccwpck_require__(497);
+const helpers_1 = __nccwpck_require__(5008);
 const repoContext = __nccwpck_require__(6705);
 const { checkForBody, getDetails } = __nccwpck_require__(3141);
 const parseDiff = __nccwpck_require__(4833);
@@ -452,6 +454,7 @@ function generateTodosFromCommit() {
             yield Promise.all(file.chunks.map((chunk) => __awaiter(this, void 0, void 0, function* () {
                 // Chunks can have multiple changes
                 yield Promise.all(chunk.changes.map((change, index) => __awaiter(this, void 0, void 0, function* () {
+                    var _a;
                     if (change.type === "normal")
                         return;
                     const changedLine = change.ln;
@@ -471,9 +474,13 @@ function generateTodosFromCommit() {
                         return;
                     // Get the details of this commit or PR
                     const details = getDetails(chunk, changedLine);
+                    const bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
+                    // add assignees mentioned in comment
+                    (_a = `${title}\n${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))) === null || _a === void 0 ? void 0 : _a.map(value => (0, helpers_1.stripAt)(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value));
                     console.log(`Item found [${title}] in [${repoContext.full_name}]`);
                     // Run the handler for this webhook listener
-                    todos.push(Object.assign({ type: change.type, keyword: matches.groups.keyword, bodyComment: checkForBody(chunk.changes, index, matches.groups.beforeTag), filename: file.to, sha: process.env.GITHUB_SHA, changedLine,
+                    todos.push(Object.assign({ type: change.type, keyword: matches.groups.keyword, filename: file.to, sha: process.env.GITHUB_SHA, bodyComment,
+                        changedLine,
                         title,
                         chunk,
                         index,
@@ -538,6 +545,7 @@ function getDetails(chunk, line) {
     const username = getUsername();
     // Generate a string that expresses who the issue is assigned to
     const assignedToString = generateAssignedTo(username, number);
+    const assignees = (0, helpers_1.assignFlow)(username);
     let range;
     if (!ArgumentContext_1.argumentContext.blobLines) {
         // Don't show the blob
@@ -552,7 +560,8 @@ function getDetails(chunk, line) {
         username,
         assignedToString,
         number,
-        range
+        range,
+        assignees
     };
 }
 module.exports = {
@@ -592,10 +601,10 @@ function sleep(milliseconds) {
 }
 function addTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
-        const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign({ owner: repoContext.owner, repo: repoContext.repo, body: todo.bodyComment }, todo)));
+        const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
         console.log(`Creating issue [${todo.title}]`);
         yield sleep(1000);
-        const val = yield octokit.issues.create(Object.assign({ owner: repoContext.owner, repo: repoContext.repo, title: todo.title, body, labels: todo.labels }, (0, helpers_1.assignFlow)(todo.username)));
+        const val = yield octokit.issues.create(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels }), (0, helpers_1.assignFlow)(todo.username)));
         todo.issueId = val.data.number;
         console.log(`Issue [${todo.title}] got ID ${todo.issueId}`);
     });
@@ -608,12 +617,7 @@ function updateTodo(todo) {
             return;
         }
         console.debug(`Updating issue [${todo.issueId}]`);
-        return yield octokit.issues.update({
-            owner: repoContext.owner,
-            repo: repoContext.repo,
-            issue_number: todo.issueId,
-            title: todo.title,
-        });
+        return yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, title: todo.title }));
     });
 }
 exports.updateTodo = updateTodo;
@@ -624,13 +628,13 @@ function closeTodo(todo) {
             return;
         }
         console.debug(`Closing issue [${todo.issueId}]`);
+        // TODO Send comment before close?
         return yield octokit.issues.update({
             owner: repoContext.owner,
             repo: repoContext.repo,
             issue_number: todo.issueId,
             state: 'closed'
         });
-        // Send Comment?
     });
 }
 exports.closeTodo = closeTodo;
@@ -641,30 +645,30 @@ function reopenTodo(todo) {
             return;
         }
         console.debug(`Reopening issue [${todo.issueId}]`);
-        return yield octokit.issues.update({
-            owner: repoContext.owner,
-            repo: repoContext.repo,
-            issue_number: todo.issueId,
-            state: 'open'
-        });
+        return yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, state: 'open' }));
     });
 }
 exports.reopenTodo = reopenTodo;
+function updateAssignees(todo) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!((_a = todo.assignees) === null || _a === void 0 ? void 0 : _a.length))
+            return;
+        return yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
+    });
+}
 function addReferenceTodo(todo) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign({ owner: repoContext.owner, repo: repoContext.repo, body: todo.bodyComment }, todo)));
+        const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
         if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
             console.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
             return;
         }
         console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`);
-        return octokit.issues.createComment({
-            owner: repoContext.owner,
-            repo: repoContext.repo,
-            issue_number: todo.similarTodo.issueId,
-            body
-        });
+        const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.similarTodo.issueId, body }));
+        yield updateAssignees(todo.similarTodo);
+        return comment;
     });
 }
 exports.addReferenceTodo = addReferenceTodo;
@@ -779,6 +783,7 @@ function cleanUpTodos(found, existing) {
                 return;
             todo.similarTodo = parent;
             todo.type = "addReference";
+            todo.assignees.forEach(value => { var _a, _b; return !((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.assignees.includes(value)) && ((_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.assignees.push(value)); });
         });
     });
     return found;
@@ -796,7 +801,7 @@ module.exports = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkSimilarity = exports.escapeForRegExp = exports.lineBreak = exports.assignFlow = exports.addAt = exports.reduceToList = void 0;
+exports.checkSimilarity = exports.escapeForRegExp = exports.lineBreak = exports.assignFlow = exports.stripAt = exports.addAt = exports.reduceToList = void 0;
 const { argumentContext } = __nccwpck_require__(3441);
 const levenshtein = __nccwpck_require__(7468);
 function reduceToList(array) {
@@ -819,18 +824,20 @@ function addAt(str) {
     return str;
 }
 exports.addAt = addAt;
-const stripAt = (str) => {
+function stripAt(str) {
     if (str.startsWith('@'))
         return str.split('@')[1];
     return str;
-};
+}
+exports.stripAt = stripAt;
 function assignFlow(author) {
     if (argumentContext.autoAssign === true) {
-        return { assignee: author };
+        return [author];
     }
     else if (argumentContext.autoAssign) {
-        return { assignees: argumentContext.autoAssign.map((n) => stripAt(n)) };
+        return [argumentContext.autoAssign.map((n) => stripAt(n))];
     }
+    return [];
 }
 exports.assignFlow = assignFlow;
 function lineBreak(body) {
