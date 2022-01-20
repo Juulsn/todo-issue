@@ -6,6 +6,7 @@ import {Todo} from "../src/Todo";
 const {testTodoChange} = require("./helpers")
 require('dotenv').config();
 
+// shouldn't mock TodoHandler, but octokit..
 jest.mock("../src/TodoHandler")
 jest.mock("../src/GitHubContext")
 
@@ -75,11 +76,13 @@ describe("Add Test", () => {
             title: 'should we reinvent the gear here??',
             number: 2,
             state: "closed",
-            assignees: []
+            assignees: [{login: 'DerJuulsn'}]
         })
 
         todoHandler.addReferenceTodo.mockImplementationOnce((todo: Todo) => {
             expect(todo.similarTodo?.issueId).toBeCloseTo(2)
+            expect(todo.similarTodo?.assignees).toContainEqual('DerJuulsn')
+            expect(todo.similarTodo?.assignees).toContainEqual('TestUser')
         })
 
         await test("AddSecond", {addReferenceTodo: 1, reopenTodo: 1})
@@ -107,6 +110,7 @@ describe("Add Test", () => {
 
         todoHandler.addTodo.mockImplementationOnce((todo: Todo) => {
             expect(todo.bodyComment).toHaveLength(531)
+            expect(todo.assignees).toContainEqual('TestUser')
         })
 
         await test("AddTodoWithBody", {addTodo: 1})

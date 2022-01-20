@@ -27,7 +27,7 @@ export function assignFlow(author: string) : string[] {
     if (argumentContext.autoAssign === true) {
         return [author]
     } else if (argumentContext.autoAssign) {
-        return [argumentContext.autoAssign.map((n: string) => stripAt(n))]
+        return argumentContext.autoAssign.map((n: string) => stripAt(n))
     }
     return []
 }

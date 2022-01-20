@@ -30,7 +30,7 @@ export async function addTodo(todo: Todo) {
     title: todo.title,
     body,
     labels: todo.labels,
-    ...assignFlow(todo.username)
+    assignees: todo.assignees
   })
 
   todo.issueId = val.data.number;

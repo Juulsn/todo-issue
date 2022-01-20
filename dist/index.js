@@ -604,7 +604,7 @@ function addTodo(todo) {
         const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
         console.log(`Creating issue [${todo.title}]`);
         yield sleep(1000);
-        const val = yield octokit.issues.create(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels }), (0, helpers_1.assignFlow)(todo.username)));
+        const val = yield octokit.issues.create(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
         todo.issueId = val.data.number;
         console.log(`Issue [${todo.title}] got ID ${todo.issueId}`);
     });
@@ -835,7 +835,7 @@ function assignFlow(author) {
         return [author];
     }
     else if (argumentContext.autoAssign) {
-        return [argumentContext.autoAssign.map((n) => stripAt(n))];
+        return argumentContext.autoAssign.map((n) => stripAt(n));
     }
     return [];
 }
