@@ -1,6 +1,6 @@
 import {argumentContext} from "./ArgumentContext";
 
-export function shouldExcludeFile(fileName) {
+export function shouldExcludeFile(fileName: string) {
 
     const alwaysExclude = /\.min\./
 

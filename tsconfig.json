@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
-    "strict": false,
+    "strict": true,
     "skipLibCheck": true,
     "rootDir": "src",
     "outDir": "lib",

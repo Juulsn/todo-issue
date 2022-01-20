@@ -29,6 +29,7 @@ async function generateTodosFromCommit() {
   const files: File[] = argumentContext.importAll ? importEverything() : parseDiff(diff)
 
   await Promise.all(files.map(async file => {
+    if(!file.to) return
     if (FileHelper.shouldExcludeFile(file.to)) return
 
     // Loop through every chunk in the file

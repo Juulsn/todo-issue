@@ -1,5 +1,4 @@
 import resetModules = jest.resetModules;
-import {context as github} from "@actions/github";
 
 require('dotenv').config();
 
@@ -9,7 +8,7 @@ jest.mock("../src/GitHubContext")
 const {testTodoChange} = require("./helpers")
 const context = require("../src/GitHubContext")
 
-let existingIssues = [];
+let existingIssues: any[] = [];
 
 describe("Rename Test", () => {
 
@@ -18,7 +17,7 @@ describe("Rename Test", () => {
         existingIssues = []
     })
 
-    const test = (file, expects = {}) => testTodoChange("rename", file, expects);
+    const test = (file: string, expects = {}) => testTodoChange("rename", file, expects);
 
     context.getIssues.mockImplementation(() => ({data: existingIssues}))
 

@@ -1,4 +1,4 @@
-import {handlebars} from "hbs";
+import {handlebars} from 'hbs';
 
 // Register a githubHost global helper to make links respect the GHE_HOST env var
 handlebars.registerHelper('githubHost', () => process.env.GHE_HOST || 'github.com')

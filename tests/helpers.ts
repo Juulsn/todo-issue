@@ -4,20 +4,11 @@ const gitContext = require("../src/GitHubContext");
 const main = require("../src/ActionMain");
 const todoHandler = require("../src/TodoHandler");
 
-const loadDiff = (diffFolder, filename) => {
-    return fs.readFileSync(path.join(__dirname, 'diffs', diffFolder, filename + '.txt'), 'utf8');
-}
+exports.testTodoChange = async (diffFolder: string, file: string, expects: any = {}) => {
 
-exports.loadConfig = filename => {
-    return Promise.resolve({
-        data: {
-            content: fs.readFileSync(path.join(__dirname, 'configs', filename + '.yml'), 'base64')
-        }
+    gitContext.getDiffFile.mockImplementationOnce(() => {
+        return fs.readFileSync(path.join(__dirname, 'diffs', diffFolder, file + '.txt'), 'utf8');
     })
-}
-
-exports.testTodoChange = async (diffFolder, file, expects: any = {}) => {
-    gitContext.getDiffFile.mockImplementationOnce(() => loadDiff(diffFolder, file))
 
     await main();
 

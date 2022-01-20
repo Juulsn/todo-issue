@@ -30,7 +30,7 @@ module.exports = async () => {
 
     console.debug('Search for TODOs...')
 
-    let todos = await generateTodosFromCommit();
+    let todos: Todo[] = await generateTodosFromCommit();
 
     console.log(`${todos.length} TODOs found`)
 
@@ -97,7 +97,7 @@ module.exports = async () => {
     const toAddReference = todos.filter(value => value.type == "addReference");
     console.log(`Adding reference for ${toAddReference.length} issues`)
     for (const value of toAddReference) {
-        if (value.similarTodo.type === "exists" && value.similarTodo.open === false) {
+        if (value.similarTodo?.type === "exists" && value.similarTodo.open === false) {
             await reopenTodo(value.similarTodo)
             value.similarTodo.open = true;
         }

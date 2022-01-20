@@ -7,7 +7,7 @@ const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
 const repoContext = require("./RepoContext");
 
-async function sleep(milliseconds) {
+async function sleep(milliseconds: number) {
   return await new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
@@ -103,8 +103,8 @@ export async function addReferenceTodo(todo: Todo) {
       })
   )
 
-  if(!todo.similarTodo.issueId){
-    console.error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo.title}]. No issueId found`)
+  if(!todo.similarTodo?.issueId){
+    console.error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo?.title}]. No issueId found`)
     return
   }
 

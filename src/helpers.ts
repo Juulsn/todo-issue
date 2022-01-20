@@ -1,7 +1,7 @@
 const {argumentContext} = require("./ArgumentContext");
 const levenshtein = require('js-levenshtein');
 
-export function reduceToList(array) {
+export function reduceToList(array: string[]) {
     return array.reduce((prev, value, i) => {
         if (i + 1 === array.length) {
             return prev + ` and ${value}`
@@ -13,30 +13,30 @@ export function reduceToList(array) {
     }, '')
 }
 
-export function addAt(str) {
+export function addAt(str: string) {
     if (!str.startsWith('@')) return `@${str}`
     return str
 }
 
-const stripAt = str => {
+const stripAt = (str: string) => {
     if (str.startsWith('@')) return str.split('@')[1]
     return str
 }
 
-export function assignFlow(author) {
+export function assignFlow(author: string) {
     if (argumentContext.autoAssign === true) {
         return {assignee: author}
     } else if (argumentContext.autoAssign) {
-        return {assignees: argumentContext.autoAssign.map(n => stripAt(n))}
+        return {assignees: argumentContext.autoAssign.map((n: string) => stripAt(n))}
     }
 }
 
-export function lineBreak(body) {
+export function lineBreak(body: string) {
     const regEx = /\/?&lt;br(?:\s\/)?&gt;/g // Regular expression to match all occurences of '&lt;br&gt'
     return body.replace(regEx, '<br>')
 }
 
-export function escapeForRegExp(input) {
+export function escapeForRegExp(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 

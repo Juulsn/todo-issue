@@ -11,7 +11,7 @@ const {generateAssignedTo} = require('./AssignHelper')
 /**
  * Get the file boundaries of the hunk
  */
-function getFileBoundaries(lastChange, line: number, padding = 2) {
+function getFileBoundaries(lastChange: any, line: number, padding = 2) {
   const end = Math.min(line + padding, lastChange.ln || lastChange.ln2)
   return {start: line, end}
 }
@@ -30,7 +30,7 @@ function checkForBody(changes: Change[], changeIndex: number, beforeTag: string)
 
     if (!matches) break
 
-    if (!matches.groups.body) {
+    if (!matches.groups?.body) {
       bodyPieces.push('\n')
     } else {
       if (bodyPieces.length > 0 && bodyPieces[bodyPieces.length - 1] !== '\n') bodyPieces.push(' ')

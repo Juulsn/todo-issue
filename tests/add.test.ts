@@ -1,7 +1,7 @@
 import {argumentContext} from "../src/ArgumentContext";
 import {checkSimilarity} from "../src/helpers";
 import resetModules = jest.resetModules;
-import {context as github} from "@actions/github";
+import {Todo} from "../src/Todo";
 
 const {testTodoChange} = require("./helpers")
 require('dotenv').config();
@@ -12,7 +12,7 @@ jest.mock("../src/GitHubContext")
 const context = require("../src/GitHubContext")
 const todoHandler = require("../src/TodoHandler")
 
-let existingIssues = [];
+let existingIssues: any[] = [];
 
 describe("Add Test", () => {
 
@@ -23,7 +23,7 @@ describe("Add Test", () => {
 
     context.getIssues.mockImplementation(() => ({data: existingIssues}))
 
-    const test = (file, expects = {}) => testTodoChange("add", file, expects);
+    const test = (file: string, expects = {}) => testTodoChange("add", file, expects);
 
     it("Adds One Todo", async () => {
         await test("Add", {addTodo: 1})
@@ -44,7 +44,7 @@ describe("Add Test", () => {
 
     it("Adds One TODO in HTML", async () => {
 
-        todoHandler.addTodo.mockImplementationOnce(todo => {
+        todoHandler.addTodo.mockImplementationOnce((todo: Todo) => {
             expect(todo.title.endsWith('-->')).toBeFalsy()
         })
 
@@ -62,8 +62,8 @@ describe("Add Test", () => {
             state: "open"
         })
 
-        todoHandler.addReferenceTodo.mockImplementationOnce(todo => {
-            expect(todo.similarTodo.issueId).toBeCloseTo(2)
+        todoHandler.addReferenceTodo.mockImplementationOnce((todo: Todo) => {
+            expect(todo.similarTodo?.issueId).toBeCloseTo(2)
         })
 
         await test("AddSecond", {addReferenceTodo: 1})
@@ -76,8 +76,8 @@ describe("Add Test", () => {
             state: "closed"
         })
 
-        todoHandler.addReferenceTodo.mockImplementationOnce(todo => {
-            expect(todo.similarTodo.issueId).toBeCloseTo(2)
+        todoHandler.addReferenceTodo.mockImplementationOnce((todo: Todo) => {
+            expect(todo.similarTodo?.issueId).toBeCloseTo(2)
         })
 
         await test("AddSecond", {addReferenceTodo: 1, reopenTodo: 1})
@@ -102,7 +102,7 @@ describe("Add Test", () => {
 
     it("Adds TODO with body", async () => {
 
-        todoHandler.addTodo.mockImplementationOnce(todo => {
+        todoHandler.addTodo.mockImplementationOnce((todo: Todo) => {
             expect(todo.bodyComment).toHaveLength(531)
         })
 
@@ -114,14 +114,14 @@ describe("Add Test", () => {
     })
 
     it("Add all", async () => {
-        const added = []
+        const added: any[] = []
 
-        todoHandler.addTodo.mockImplementation(todo => {
+        todoHandler.addTodo.mockImplementation((todo: Todo) => {
             expect(added.find(value => checkSimilarity(value.title, todo.title))).toBeUndefined()
             added.push(todo)
         })
 
-        todoHandler.addReferenceTodo.mockImplementation(todo => {
+        todoHandler.addReferenceTodo.mockImplementation((todo: Todo) => {
             expect(added.find(value => checkSimilarity(value.title, todo.title))).toBeDefined()
         })
 

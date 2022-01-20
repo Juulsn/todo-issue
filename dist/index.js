@@ -44,6 +44,7 @@ const { generateTodosFromCommit } = __nccwpck_require__(9619);
 const { cleanUpTodos } = __nccwpck_require__(8794);
 const { addTodo, closeTodo, addReferenceTodo, updateTodo } = __nccwpck_require__(3842);
 module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     if (argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
             core.setFailed('importAll can only be used on trigger workflow_dispatch');
@@ -108,7 +109,7 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
     const toAddReference = todos.filter(value => value.type == "addReference");
     console.log(`Adding reference for ${toAddReference.length} issues`);
     for (const value of toAddReference) {
-        if (value.similarTodo.type === "exists" && value.similarTodo.open === false) {
+        if (((_a = value.similarTodo) === null || _a === void 0 ? void 0 : _a.type) === "exists" && value.similarTodo.open === false) {
             yield (0, TodoHandler_1.reopenTodo)(value.similarTodo);
             value.similarTodo.open = true;
         }
@@ -370,10 +371,13 @@ module.exports = {
 /***/ 6705:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
+"use strict";
+
+var _a, _b;
 const github = __nccwpck_require__(5438);
 const repoObject = {
-    owner: process.env.GITHUB_REPOSITORY.split('/')[0],
-    repo: process.env.GITHUB_REPOSITORY.split('/')[1]
+    owner: (_a = process.env.GITHUB_REPOSITORY) === null || _a === void 0 ? void 0 : _a.split('/')[0],
+    repo: (_b = process.env.GITHUB_REPOSITORY) === null || _b === void 0 ? void 0 : _b.split('/')[1]
 };
 module.exports = Object.assign(Object.assign({}, repoObject), { repoObject, full_name: process.env.GITHUB_REPOSITORY, 
     /*default_ref: process.env.GITHUB_BASE_REF,
@@ -440,6 +444,8 @@ function generateTodosFromCommit() {
         // Parse the diff as files or import all
         const files = ArgumentContext_1.argumentContext.importAll ? (0, AllImporter_1.importEverything)() : parseDiff(diff);
         yield Promise.all(files.map((file) => __awaiter(this, void 0, void 0, function* () {
+            if (!file.to)
+                return;
             if (FileHelper.shouldExcludeFile(file.to))
                 return;
             // Loop through every chunk in the file
@@ -508,6 +514,7 @@ function getFileBoundaries(lastChange, line, padding = 2) {
  * Prepares some details about the TODO
  */
 function checkForBody(changes, changeIndex, beforeTag) {
+    var _a;
     const bodyPieces = [];
     const nextChanges = changes.slice(changeIndex + 1);
     const BODY_REG = new RegExp(`${(0, helpers_1.escapeForRegExp)(beforeTag)}\\W*(?<keyword>${ArgumentContext_1.argumentContext.bodyKeywords.join('|')})\\b\\W*(?<body>.*)`, !ArgumentContext_1.argumentContext.caseSensitive ? 'i' : '');
@@ -515,7 +522,7 @@ function checkForBody(changes, changeIndex, beforeTag) {
         const matches = BODY_REG.exec(change.content);
         if (!matches)
             break;
-        if (!matches.groups.body) {
+        if (!((_a = matches.groups) === null || _a === void 0 ? void 0 : _a.body)) {
             bodyPieces.push('\n');
         }
         else {
@@ -644,10 +651,11 @@ function reopenTodo(todo) {
 }
 exports.reopenTodo = reopenTodo;
 function addReferenceTodo(todo) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign({ owner: repoContext.owner, repo: repoContext.repo, body: todo.bodyComment }, todo)));
-        if (!todo.similarTodo.issueId) {
-            console.error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo.title}]. No issueId found`);
+        if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
+            console.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
             return;
         }
         console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`);
@@ -743,7 +751,7 @@ function cleanUpTodos(found, existing) {
         // })
     });
     // Merge all groups which includes the same TODOs
-    groupList.forEach(group0 => {
+    groupList.forEach((group0) => {
         // has similarity
         const group = groupList.find(group1 => group1 !== group0 && group1.some(todo => group0.includes(todo)));
         if (group) {
@@ -811,7 +819,7 @@ function addAt(str) {
     return str;
 }
 exports.addAt = addAt;
-const stripAt = str => {
+const stripAt = (str) => {
     if (str.startsWith('@'))
         return str.split('@')[1];
     return str;
@@ -821,7 +829,7 @@ function assignFlow(author) {
         return { assignee: author };
     }
     else if (argumentContext.autoAssign) {
-        return { assignees: argumentContext.autoAssign.map(n => stripAt(n)) };
+        return { assignees: argumentContext.autoAssign.map((n) => stripAt(n)) };
     }
 }
 exports.assignFlow = assignFlow;
@@ -850,6 +858,8 @@ exports.checkSimilarity = checkSimilarity;
 /***/ 4528:
 /***/ ((module) => {
 
+"use strict";
+
 module.exports = `## {{ title }}
 
 {{#if body}}
@@ -864,7 +874,7 @@ https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ filename }}#{{
 ---
 
 {{/if}}
-###### This comment was generated by [todo-issue](https://github.com/DerJuulsn/todo-issue) based on a \`{{ keyword }}\` comment in {{ sha }} in #{{ number }}.{{ assignedToString }}`;
+###### This comment was generated by [todo-issue](https://github.com/DerJuulsn/todo-issue) based on a \`{{ keyword }}\` comment in {{ sha }}.{{ assignedToString }}`;
 
 
 /***/ }),
@@ -893,6 +903,8 @@ exports.template = {
 /***/ 1671:
 /***/ ((module) => {
 
+"use strict";
+
 module.exports = `{{#if body}}
 {{ body }}
 
@@ -912,6 +924,8 @@ https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ filename }}#{{
 
 /***/ 1783:
 /***/ ((module) => {
+
+"use strict";
 
 module.exports = `{{#if body}}
 {{ body }}
@@ -933,6 +947,8 @@ https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ filename }}#{{
 /***/ 6652:
 /***/ ((module) => {
 
+"use strict";
+
 module.exports = `This issue has been reopened because the **\`{{ keyword }}\`** comment still exists in [**{{ filename }}**](https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ filename }}), as of {{ sha }}.
 
 ---
@@ -944,6 +960,8 @@ module.exports = `This issue has been reopened because the **\`{{ keyword }}\`**
 
 /***/ 5972:
 /***/ ((module) => {
+
+"use strict";
 
 module.exports = 'Please do not change the issue title! **todo** uses it to prevent duplicate issues from being opened. If you think this is an error, please [open an issue](https://github.com/DerJuulsn/todo-issue)!';
 
@@ -19081,8 +19099,10 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
+"use strict";
+
 const entry = __nccwpck_require__(7451);
 entry().then();
 

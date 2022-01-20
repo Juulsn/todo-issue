@@ -65,7 +65,7 @@ function cleanUpTodos(found: Todo[], existing: Todo[]) {
 
     found = found.filter(value => value.type !== "ignore")
 
-    let groupList = []
+    let groupList: (Todo[])[] = []
 
     // Group similar TODOs
     found.forEach(foundTodo0 => {
@@ -93,7 +93,7 @@ function cleanUpTodos(found: Todo[], existing: Todo[]) {
     })
 
     // Merge all groups which includes the same TODOs
-    groupList.forEach(group0 => {
+    groupList.forEach((group0) => {
 
         // has similarity
         const group = groupList.find(group1 => group1 !== group0 && group1.some(todo => group0.includes(todo)))
