@@ -1,6 +1,9 @@
 name: 'todo-issue'
 description: 'Converts TODOs to Issues'
 author: 'Julian Bildner'
+branding:
+  icon: "check-circle"
+  color: "white"
 inputs:
   keywords:
     description: List of keywords for comments to be added which starts with one of these words.
