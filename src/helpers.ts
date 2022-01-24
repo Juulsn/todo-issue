@@ -25,7 +25,9 @@ export function stripAt(str: string) {
 
 export function assignFlow(author: string) : string[] {
     if (argumentContext.autoAssign === true) {
-        return [author]
+        if(author)
+            return [author]
+        return []
     } else if (argumentContext.autoAssign) {
         return argumentContext.autoAssign.map((n: string) => stripAt(n))
     }

@@ -26,8 +26,8 @@ export const argumentContext = {
 
     taskSystem: inputParser.getInput("taskSystem", {type: "string", default: "GitHub"}) as string,
 
-    importAll: github.event?.inputs?.importAll as string === 'true',
+    importAll: github?.context?.payload?.inputs?.importAll as boolean,
 
     reopenClosed: inputParser.getInput("reopenClosed", {type: "boolean", default: true}) as boolean
 
-}
+};

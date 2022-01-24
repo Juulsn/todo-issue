@@ -14,20 +14,26 @@ async function generateTodosFromCommit() {
 
   const todos: Todo[] = []
 
-  // Get the diff for this commit or PR
-  const diff = await getDiffFile()
-  if (!diff) return todos
-
-  // Ensure that all the labels we need are present
-  const labels = await getLabels()
-
   if (!argumentContext.keywords.length) return todos
 
   // RegEx that matches lines with the configured keywords
   const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${argumentContext.keywords.join('|')})\\b\\W*(?<title>.*)`, (!argumentContext.caseSensitive ? 'i' : ''))
 
-  // Parse the diff as files or import all
-  const files: File[] = argumentContext.importAll ? importEverything() : parseDiff(diff)
+  let files: File[];
+
+  // Diff as files or import all
+  if (argumentContext.importAll) {
+    files = importEverything();
+  } else {
+    // Get the diff for this commit or PR
+    const diff = await getDiffFile()
+    if (!diff) return todos
+
+    files = parseDiff(diff)
+  }
+
+  // Ensure that all the labels we need are present
+  const labels = await getLabels()
 
   await Promise.all(files.map(async file => {
     if(!file.to) return
