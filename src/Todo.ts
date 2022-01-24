@@ -3,6 +3,7 @@ import {argumentContext} from "./ArgumentContext";
 import * as FileHelper from './FileHelper'
 import {importEverything} from "./AllImporter";
 import {stripAt} from "./helpers";
+import {truncate} from "fs";
 
 const repoContext = require("./RepoContext");
 const  {checkForBody, getDetails} = require("./TodoDetails");
@@ -55,14 +56,17 @@ async function generateTodosFromCommit() {
           // TODO Add to regex :)
         }
 
-        // This might have matched a minified file, or something huge.
-        // GitHub wouldn't allow this anyway, so let's just ignore it.
-        if (!title || title.length > 256) return
+        // GitHub wouldn't allow this, so let's ignore it.
+        if (!title) return
 
         // Get the details of this commit or PR
         const details = getDetails(chunk, changedLine)
 
-        const bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
+        const bodyComment = (title.length > 256 ? (title + '<br><br>') : '') + checkForBody(chunk.changes, index, matches.groups.beforeTag);
+
+        if(title.length > 256) {
+          title = title.slice(0, 100) + '...'
+        }
 
         // add assignees mentioned in comment
         `${title}\n${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))?.map(value => stripAt(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value))

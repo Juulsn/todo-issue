@@ -182,7 +182,7 @@ exports.importEverything = importEverything;
 
 "use strict";
 
-var _a, _b;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.argumentContext = void 0;
 const github = __nccwpck_require__(5438);
@@ -205,7 +205,7 @@ exports.argumentContext = {
     }),
     excludePattern: inputParser.getInput('excludePattern', { type: 'string' }),
     taskSystem: inputParser.getInput("taskSystem", { type: "string", default: "GitHub" }),
-    importAll: ((_b = (_a = github.event) === null || _a === void 0 ? void 0 : _a.inputs) === null || _b === void 0 ? void 0 : _b.importAll) === 'true',
+    importAll: (_c = (_b = (_a = github === null || github === void 0 ? void 0 : github.context) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.inputs) === null || _c === void 0 ? void 0 : _c.importAll,
     reopenClosed: inputParser.getInput("reopenClosed", { type: "boolean", default: true })
 };
 
@@ -326,8 +326,9 @@ function getDiffFile() {
             if (diff)
                 return diff.data;
         }
-        catch (_a) {
-            console.error("Diff file is too big");
+        catch (e) {
+            console.error(e);
+            console.error("Diff file might be too big");
             return;
         }
     });
@@ -433,18 +434,24 @@ const { getDiffFile, getLabels } = __nccwpck_require__(422);
 function generateTodosFromCommit() {
     return __awaiter(this, void 0, void 0, function* () {
         const todos = [];
-        // Get the diff for this commit or PR
-        const diff = yield getDiffFile();
-        if (!diff)
-            return todos;
-        // Ensure that all the labels we need are present
-        const labels = yield getLabels();
         if (!ArgumentContext_1.argumentContext.keywords.length)
             return todos;
         // RegEx that matches lines with the configured keywords
         const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${ArgumentContext_1.argumentContext.keywords.join('|')})\\b\\W*(?<title>.*)`, (!ArgumentContext_1.argumentContext.caseSensitive ? 'i' : ''));
-        // Parse the diff as files or import all
-        const files = ArgumentContext_1.argumentContext.importAll ? (0, AllImporter_1.importEverything)() : parseDiff(diff);
+        let files;
+        // Diff as files or import all
+        if (ArgumentContext_1.argumentContext.importAll) {
+            files = (0, AllImporter_1.importEverything)();
+        }
+        else {
+            // Get the diff for this commit or PR
+            const diff = yield getDiffFile();
+            if (!diff)
+                return todos;
+            files = parseDiff(diff);
+        }
+        // Ensure that all the labels we need are present
+        const labels = yield getLabels();
         yield Promise.all(files.map((file) => __awaiter(this, void 0, void 0, function* () {
             if (!file.to)
                 return;
@@ -468,13 +475,15 @@ function generateTodosFromCommit() {
                         title = title.slice(0, title.length - 3);
                         // TODO Add to regex :)
                     }
-                    // This might have matched a minified file, or something huge.
-                    // GitHub wouldn't allow this anyway, so let's just ignore it.
-                    if (!title || title.length > 256)
+                    // GitHub wouldn't allow this, so let's ignore it.
+                    if (!title)
                         return;
                     // Get the details of this commit or PR
                     const details = getDetails(chunk, changedLine);
-                    const bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
+                    const bodyComment = (title.length > 256 ? (title + '<br><br>') : '') + checkForBody(chunk.changes, index, matches.groups.beforeTag);
+                    if (title.length > 256) {
+                        title = title.slice(0, 100) + '...';
+                    }
                     // add assignees mentioned in comment
                     (_a = `${title}\n${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))) === null || _a === void 0 ? void 0 : _a.map(value => (0, helpers_1.stripAt)(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value));
                     console.log(`Item found [${title}] in [${repoContext.full_name}]`);
@@ -603,9 +612,9 @@ function addTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
         console.log(`Creating issue [${todo.title}]`);
-        yield sleep(1000);
         const val = yield octokit.issues.create(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
         todo.issueId = val.data.number;
+        yield sleep(1000);
         console.log(`Issue [${todo.title}] got ID ${todo.issueId}`);
     });
 }
@@ -832,7 +841,9 @@ function stripAt(str) {
 exports.stripAt = stripAt;
 function assignFlow(author) {
     if (argumentContext.autoAssign === true) {
-        return [author];
+        if (author)
+            return [author];
+        return [];
     }
     else if (argumentContext.autoAssign) {
         return argumentContext.autoAssign.map((n) => stripAt(n));
