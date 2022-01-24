@@ -62,8 +62,9 @@ async function getDiffFile() {
         const diff = await getDiff();
         if (diff)
             return diff.data
-    } catch {
-        console.error("Diff file is too big")
+    } catch (e) {
+        console.error(e)
+        console.error("Diff file might be too big")
         return
     }
 }

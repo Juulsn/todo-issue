@@ -23,8 +23,6 @@ export async function addTodo(todo: Todo) {
 
   console.log(`Creating issue [${todo.title}]`)
 
-  await sleep(1000);
-
   const val = await octokit.issues.create({
     ...repoContext.repoObject,
     title: todo.title,
@@ -34,6 +32,8 @@ export async function addTodo(todo: Todo) {
   })
 
   todo.issueId = val.data.number;
+
+  await sleep(1000);
 
   console.log(`Issue [${todo.title}] got ID ${todo.issueId}`)
 }
