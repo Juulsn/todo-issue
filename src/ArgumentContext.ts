@@ -6,7 +6,7 @@ export const argumentContext = {
     keywords: inputParser.getInput('keywords', {type: 'array', default: ['TODO']}) as Array<string>,
     bodyKeywords: inputParser.getInput('bodyKeywords', {type: 'array', default: []}) as Array<string>,
 
-    caseSensitive: inputParser.getInput('label', {type: "boolean", default: true}) as boolean,
+    caseSensitive: inputParser.getInput('caseSensitive', {type: "boolean", default: true}) as boolean,
 
     titleSimilarity: inputParser.getInput("taskSystem", {
         type: "number",

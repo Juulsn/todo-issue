@@ -190,7 +190,7 @@ const inputParser = __nccwpck_require__(4623);
 exports.argumentContext = {
     keywords: inputParser.getInput('keywords', { type: 'array', default: ['TODO'] }),
     bodyKeywords: inputParser.getInput('bodyKeywords', { type: 'array', default: [] }),
-    caseSensitive: inputParser.getInput('label', { type: "boolean", default: true }),
+    caseSensitive: inputParser.getInput('caseSensitive', { type: "boolean", default: true }),
     titleSimilarity: inputParser.getInput("taskSystem", {
         type: "number",
         disableable: true,
