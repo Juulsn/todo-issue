@@ -68,9 +68,17 @@ async function generateTodosFromCommit() {
         // Get the details of this commit or PR
         const details = getDetails(chunk, changedLine)
 
-        const bodyComment = (title.length > 256 ? (title + '<br><br>') : '') + checkForBody(chunk.changes, index, matches.groups.beforeTag);
+        let bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
 
         if(title.length > 256) {
+
+          let wholeTitle = title + '<br><br>';
+
+          if(bodyComment)
+            bodyComment = wholeTitle + bodyComment
+          else
+            bodyComment = wholeTitle
+
           title = title.slice(0, 100) + '...'
         }
 
