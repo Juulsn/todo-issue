@@ -1,6 +1,6 @@
 import {Todo} from "./Todo";
 
-import {reopenTodo} from "./TodoHandler";
+import {reopenTodo, sleep} from "./TodoHandler";
 
 import {context as github} from "@actions/github";
 import * as core from "@actions/core";
@@ -25,7 +25,13 @@ module.exports = async () => {
     }
 
     if (argumentContext.taskSystem !== "GitHub") {
-        throw new Error(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+        core.setFailed(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+        return
+    }
+
+    if (!argumentContext.keywords.length) {
+        core.setFailed('No keywords were specified!')
+        return
     }
 
     console.debug('Search for TODOs...')
@@ -67,6 +73,11 @@ module.exports = async () => {
                     assignees: each.assignees.map((assignee: any) => assignee.login)
                 } as Todo)
         })
+
+        if(page % 5 == 0){
+            console.debug("Waiting 2 seconds because of github api rate limit")
+            await sleep(2000);
+        }
     }
 
     console.log(`${existingTodos.length} TODOs imported`)
@@ -76,7 +87,11 @@ module.exports = async () => {
     const toAdd = todos.filter(value => value.type == "add");
     console.log(`Adding ${toAdd.length} issues`)
     for (const value of toAdd) {
-        await addTodo(value);
+        try {
+            await addTodo(value);
+        } catch (e) {
+            console.warn(e)
+        }
     }
 
     if (argumentContext.importAll) return
@@ -84,13 +99,21 @@ module.exports = async () => {
     const toClose = todos.filter(value => value.type == "del");
     console.log(`Closing ${toClose.length} issues`)
     for (const value of toClose) {
-        await closeTodo(value);
+        try {
+            await closeTodo(value);
+        } catch (e) {
+            console.warn(e)
+        }
     }
 
     const toUpdate = todos.filter(value => value.type == "update");
     console.log(`Updating ${toUpdate.length} issues`)
     for (const value of toUpdate) {
-        await updateTodo(value);
+        try {
+            await updateTodo(value);
+        } catch (e) {
+            console.warn(e)
+        }
     }
 
     if (!argumentContext.reopenClosed) return
@@ -98,13 +121,22 @@ module.exports = async () => {
     const toAddReference = todos.filter(value => value.type == "addReference");
     console.log(`Adding reference for ${toAddReference.length} issues`)
     for (const value of toAddReference) {
+        // check if it has been already reopened
         if (value.similarTodo?.type === "exists" && value.similarTodo.open === false) {
-            await reopenTodo(value.similarTodo)
+            try {
+                await reopenTodo(value.similarTodo)
+            } catch (e) {
+                console.warn(e)
+            }
             value.similarTodo.open = true;
         }
     }
     for (const value of toAddReference) {
-        await addReferenceTodo(value);
+        try {
+            await addReferenceTodo(value);
+        } catch (e) {
+            console.warn(e)
+        }
     }
 
 };

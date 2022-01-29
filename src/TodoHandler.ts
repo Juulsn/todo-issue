@@ -7,7 +7,7 @@ const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
 const repoContext = require("./RepoContext");
 
-async function sleep(milliseconds: number) {
+export async function sleep(milliseconds: number) {
   return await new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
@@ -21,7 +21,7 @@ export async function addTodo(todo: Todo) {
       })
   )
 
-  console.log(`Creating issue [${todo.title}]`)
+  console.debug(`Creating issue [${todo.title}]`)
 
   const val = await octokit.issues.create({
     ...repoContext.repoObject,
@@ -33,9 +33,9 @@ export async function addTodo(todo: Todo) {
 
   todo.issueId = val.data.number;
 
-  await sleep(1000);
+  await sleep(1500);
 
-  console.log(`Issue [${todo.title}] got ID ${todo.issueId}`)
+  console.debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
 }
 
 export async function updateTodo(todo: Todo) {
@@ -47,12 +47,16 @@ export async function updateTodo(todo: Todo) {
 
   console.debug(`Updating issue [${todo.issueId}]`)
 
-  return await octokit.issues.update({
+  let val = await octokit.issues.update({
     ...repoContext.repoObject,
     issue_number: todo.issueId,
     title: todo.title,
     // assignees will not get an update because it was probably just a typo fix
   })
+
+  await sleep(1500);
+
+  return val;
 }
 
 export async function closeTodo(todo: Todo) {
@@ -66,12 +70,16 @@ export async function closeTodo(todo: Todo) {
 
   // TODO Send comment before close?
 
-  return await octokit.issues.update({
+  let val = await octokit.issues.update({
     owner: repoContext.owner,
     repo: repoContext.repo,
     issue_number: todo.issueId,
     state: 'closed'
   })
+
+  await sleep(1500);
+
+  return val;
 }
 
 export async function reopenTodo(todo: Todo) {
@@ -83,11 +91,15 @@ export async function reopenTodo(todo: Todo) {
 
   console.debug(`Reopening issue [${todo.issueId}]`)
 
-  return await octokit.issues.update({
+  let val = await octokit.issues.update({
     ...repoContext.repoObject,
     issue_number: todo.issueId,
     state: 'open'
   })
+
+  await sleep(1500);
+
+  return val;
 }
 
 async function updateAssignees(todo: Todo){
@@ -124,6 +136,8 @@ export async function addReferenceTodo(todo: Todo) {
   })
 
   await updateAssignees(todo.similarTodo)
+
+  await sleep(1500)
 
   return comment
 

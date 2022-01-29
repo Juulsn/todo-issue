@@ -57,7 +57,12 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
         return;
     }
     if (argumentContext.taskSystem !== "GitHub") {
-        throw new Error(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+        core.setFailed(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+        return;
+    }
+    if (!argumentContext.keywords.length) {
+        core.setFailed('No keywords were specified!');
+        return;
     }
     console.debug('Search for TODOs...');
     let todos = yield generateTodosFromCommit();
@@ -85,38 +90,68 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
                 assignees: each.assignees.map((assignee) => assignee.login)
             });
         });
+        if (page % 5 == 0) {
+            console.debug("Waiting 2 seconds because of github api rate limit");
+            yield (0, TodoHandler_1.sleep)(2000);
+        }
     }
     console.log(`${existingTodos.length} TODOs imported`);
     todos = cleanUpTodos(todos, existingTodos);
     const toAdd = todos.filter(value => value.type == "add");
     console.log(`Adding ${toAdd.length} issues`);
     for (const value of toAdd) {
-        yield addTodo(value);
+        try {
+            yield addTodo(value);
+        }
+        catch (e) {
+            console.warn(e);
+        }
     }
     if (argumentContext.importAll)
         return;
     const toClose = todos.filter(value => value.type == "del");
     console.log(`Closing ${toClose.length} issues`);
     for (const value of toClose) {
-        yield closeTodo(value);
+        try {
+            yield closeTodo(value);
+        }
+        catch (e) {
+            console.warn(e);
+        }
     }
     const toUpdate = todos.filter(value => value.type == "update");
     console.log(`Updating ${toUpdate.length} issues`);
     for (const value of toUpdate) {
-        yield updateTodo(value);
+        try {
+            yield updateTodo(value);
+        }
+        catch (e) {
+            console.warn(e);
+        }
     }
     if (!argumentContext.reopenClosed)
         return;
     const toAddReference = todos.filter(value => value.type == "addReference");
     console.log(`Adding reference for ${toAddReference.length} issues`);
     for (const value of toAddReference) {
+        // check if it has been already reopened
         if (((_a = value.similarTodo) === null || _a === void 0 ? void 0 : _a.type) === "exists" && value.similarTodo.open === false) {
-            yield (0, TodoHandler_1.reopenTodo)(value.similarTodo);
+            try {
+                yield (0, TodoHandler_1.reopenTodo)(value.similarTodo);
+            }
+            catch (e) {
+                console.warn(e);
+            }
             value.similarTodo.open = true;
         }
     }
     for (const value of toAddReference) {
-        yield addReferenceTodo(value);
+        try {
+            yield addReferenceTodo(value);
+        }
+        catch (e) {
+            console.warn(e);
+        }
     }
 });
 
@@ -434,8 +469,6 @@ const { getDiffFile, getLabels } = __nccwpck_require__(422);
 function generateTodosFromCommit() {
     return __awaiter(this, void 0, void 0, function* () {
         const todos = [];
-        if (!ArgumentContext_1.argumentContext.keywords.length)
-            return todos;
         // RegEx that matches lines with the configured keywords
         const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${ArgumentContext_1.argumentContext.keywords.join('|')})\\b\\W*(?<title>.*)`, (!ArgumentContext_1.argumentContext.caseSensitive ? 'i' : ''));
         let files;
@@ -602,7 +635,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.updateTodo = exports.addTodo = void 0;
+exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.updateTodo = exports.addTodo = exports.sleep = void 0;
 const helpers_1 = __nccwpck_require__(5008);
 const templates_1 = __nccwpck_require__(1429);
 const rest_1 = __nccwpck_require__(5375);
@@ -613,14 +646,15 @@ function sleep(milliseconds) {
         return yield new Promise(resolve => setTimeout(resolve, milliseconds));
     });
 }
+exports.sleep = sleep;
 function addTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
-        console.log(`Creating issue [${todo.title}]`);
+        console.debug(`Creating issue [${todo.title}]`);
         const val = yield octokit.issues.create(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
         todo.issueId = val.data.number;
-        yield sleep(1000);
-        console.log(`Issue [${todo.title}] got ID ${todo.issueId}`);
+        yield sleep(1500);
+        console.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
     });
 }
 exports.addTodo = addTodo;
@@ -631,7 +665,9 @@ function updateTodo(todo) {
             return;
         }
         console.debug(`Updating issue [${todo.issueId}]`);
-        return yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, title: todo.title }));
+        let val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, title: todo.title }));
+        yield sleep(1500);
+        return val;
     });
 }
 exports.updateTodo = updateTodo;
@@ -643,12 +679,14 @@ function closeTodo(todo) {
         }
         console.debug(`Closing issue [${todo.issueId}]`);
         // TODO Send comment before close?
-        return yield octokit.issues.update({
+        let val = yield octokit.issues.update({
             owner: repoContext.owner,
             repo: repoContext.repo,
             issue_number: todo.issueId,
             state: 'closed'
         });
+        yield sleep(1500);
+        return val;
     });
 }
 exports.closeTodo = closeTodo;
@@ -659,7 +697,9 @@ function reopenTodo(todo) {
             return;
         }
         console.debug(`Reopening issue [${todo.issueId}]`);
-        return yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, state: 'open' }));
+        let val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, state: 'open' }));
+        yield sleep(1500);
+        return val;
     });
 }
 exports.reopenTodo = reopenTodo;
@@ -682,6 +722,7 @@ function addReferenceTodo(todo) {
         console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`);
         const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.similarTodo.issueId, body }));
         yield updateAssignees(todo.similarTodo);
+        yield sleep(1500);
         return comment;
     });
 }
@@ -705,7 +746,7 @@ function cleanUpTodos(found, existing) {
             return;
         if (todos.length > 1)
             console.warn(`More than one possible issue for TODO ${foundTodo.title} in file ${foundTodo.filename} line ${foundTodo.changedLine} found, using first.`);
-        console.log(`${foundTodo.title} has exactly the same title as existing todo ${todos[0]}`);
+        console.debug(`${foundTodo.title} has exactly the same title as an existing todo`);
         foundTodo.issueId = todos[0].issueId;
     });
     // Moved and small changes TODOs

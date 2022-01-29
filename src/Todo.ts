@@ -3,7 +3,6 @@ import {argumentContext} from "./ArgumentContext";
 import * as FileHelper from './FileHelper'
 import {importEverything} from "./AllImporter";
 import {stripAt} from "./helpers";
-import {truncate} from "fs";
 
 const repoContext = require("./RepoContext");
 const  {checkForBody, getDetails} = require("./TodoDetails");
@@ -14,8 +13,6 @@ const {getDiffFile, getLabels} = require('./GitHubContext')
 async function generateTodosFromCommit() {
 
   const todos: Todo[] = []
-
-  if (!argumentContext.keywords.length) return todos
 
   // RegEx that matches lines with the configured keywords
   const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${argumentContext.keywords.join('|')})\\b\\W*(?<title>.*)`, (!argumentContext.caseSensitive ? 'i' : ''))

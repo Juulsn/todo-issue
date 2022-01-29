@@ -13,7 +13,7 @@ function cleanUpTodos(found: Todo[], existing: Todo[]) {
         if (todos.length > 1)
             console.warn(`More than one possible issue for TODO ${foundTodo.title} in file ${foundTodo.filename} line ${foundTodo.changedLine} found, using first.`)
 
-        console.log(`${foundTodo.title} has exactly the same title as existing todo ${todos[0]}`)
+        console.debug(`${foundTodo.title} has exactly the same title as an existing todo`)
 
         foundTodo.issueId = todos[0].issueId;
     })
