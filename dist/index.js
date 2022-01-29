@@ -333,33 +333,14 @@ function getIssues(page) {
 /**
  * @returns raw diff data
  */
-function getDiff() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (github_1.context.payload.commits.length) {
-            console.log(`${github_1.context.payload.commits.length} commits pushed`);
-            return yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { 
-                // if payload.created is true it is most likely a new repo. But we don't want the initial commit to trigger create new issues, so it's okay if payload.before is 'empty'
-                basehead: `${github_1.context.payload.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
-        }
-        else {
-            console.log('One commit added');
-            const commit = yield octokit.repos.getCommit(Object.assign(Object.assign({}, repoContext.repoObject), { ref: github_1.context.payload.head_commit.id }));
-            if (commit.data.parents.length > 1) // we don't want merges to add issues (again)
-                return;
-            return yield octokit.repos.getCommit(Object.assign(Object.assign({}, repoContext.repoObject), { ref: github_1.context.payload.head_commit.id, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
-        }
-    });
-}
-/**
- * @returns raw diff data
- */
 function getDiffFile() {
     return __awaiter(this, void 0, void 0, function* () {
-        // TODO Merge methods getDiffFile and getDiff
         try {
-            const diff = yield getDiff();
-            if (diff)
-                return diff.data;
+            console.debug(`${github_1.context.payload.commits.length} commits pushed`);
+            let diff = yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { 
+                // if payload.created is true it is most likely a new repo. But we don't want the initial commit to trigger create new issues, so it's okay if payload.before is 'empty'
+                basehead: `${github_1.context.payload.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
+            return diff === null || diff === void 0 ? void 0 : diff.data;
         }
         catch (e) {
             console.error(e);
@@ -498,7 +479,7 @@ function generateTodosFromCommit() {
                     if (change.type === "normal")
                         return;
                     const changedLine = change.ln;
-                    // Attempt to find a matching line: TODO Something something
+                    // Attempt to find a matching line
                     const matches = regex.exec(change.content);
                     if (!matches || !matches.groups)
                         return;
@@ -565,7 +546,7 @@ function getFileBoundaries(lastChange, line, padding = 2) {
     return { start: line, end };
 }
 /**
- * Prepares some details about the TODO
+ * Prepares some details about the TO_DO
  */
 function checkForBody(changes, changeIndex, beforeTag) {
     var _a;

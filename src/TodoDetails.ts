@@ -17,7 +17,7 @@ function getFileBoundaries(lastChange: any, line: number, padding = 2) {
 }
 
 /**
- * Prepares some details about the TODO
+ * Prepares some details about the TO_DO
  */
 function checkForBody(changes: Change[], changeIndex: number, beforeTag: string) {
   const bodyPieces = []

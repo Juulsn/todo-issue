@@ -47,7 +47,7 @@ async function generateTodosFromCommit() {
 
         const changedLine = change.ln;
 
-        // Attempt to find a matching line: TODO Something something
+        // Attempt to find a matching line
         const matches = regex.exec(change.content)
         if (!matches || !matches.groups) return
 
