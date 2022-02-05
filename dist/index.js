@@ -45,6 +45,7 @@ const { cleanUpTodos } = __nccwpck_require__(8794);
 const { addTodo, closeTodo, addReferenceTodo, updateTodo } = __nccwpck_require__(3842);
 module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    yield (0, TodoHandler_1.checkRateLimit)(false);
     if (argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
             core.setFailed('importAll can only be used on trigger workflow_dispatch');
@@ -77,6 +78,7 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
         const result = yield getIssues(page);
         next = result.data.length === 100;
         page++;
+        yield (0, TodoHandler_1.checkRateLimit)();
         result.data.forEach((each) => {
             if (each.pull_request)
                 return;
@@ -90,21 +92,25 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
                 assignees: each.assignees.map((assignee) => assignee.login)
             });
         });
-        if (page % 5 == 0) {
-            console.debug("Waiting 2 seconds because of github api rate limit");
-            yield (0, TodoHandler_1.sleep)(2000);
-        }
     }
     console.log(`${existingTodos.length} TODOs imported`);
     todos = cleanUpTodos(todos, existingTodos);
     const toAdd = todos.filter(value => value.type == "add");
     console.log(`Adding ${toAdd.length} issues`);
+    yield (0, TodoHandler_1.checkRateLimit)(false);
     for (const value of toAdd) {
         try {
             yield addTodo(value);
         }
         catch (e) {
+            if (isRateLimitError(e)) {
+                //wait and retry
+                yield (0, TodoHandler_1.checkRateLimit)(false);
+                yield addTodo(value);
+                continue;
+            }
             console.warn(e);
+            core.warning(e.message);
         }
     }
     if (argumentContext.importAll)
@@ -116,7 +122,14 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
             yield closeTodo(value);
         }
         catch (e) {
+            if (isRateLimitError(e)) {
+                //wait and retry
+                yield (0, TodoHandler_1.checkRateLimit)(false);
+                yield closeTodo(value);
+                continue;
+            }
             console.warn(e);
+            core.warning(e.message);
         }
     }
     const toUpdate = todos.filter(value => value.type == "update");
@@ -126,7 +139,14 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
             yield updateTodo(value);
         }
         catch (e) {
+            if (isRateLimitError(e)) {
+                //wait and retry
+                yield (0, TodoHandler_1.checkRateLimit)(false);
+                yield updateTodo(value);
+                continue;
+            }
             console.warn(e);
+            core.warning(e.message);
         }
     }
     if (!argumentContext.reopenClosed)
@@ -140,7 +160,14 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
                 yield (0, TodoHandler_1.reopenTodo)(value.similarTodo);
             }
             catch (e) {
+                if (isRateLimitError(e)) {
+                    //wait and retry
+                    yield (0, TodoHandler_1.checkRateLimit)(false);
+                    yield (0, TodoHandler_1.reopenTodo)(value);
+                    continue;
+                }
                 console.warn(e);
+                core.warning(e.message);
             }
             value.similarTodo.open = true;
         }
@@ -150,10 +177,20 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
             yield addReferenceTodo(value);
         }
         catch (e) {
+            if (isRateLimitError(e)) {
+                //wait and retry
+                yield (0, TodoHandler_1.checkRateLimit)(false);
+                yield addReferenceTodo(value);
+                continue;
+            }
             console.warn(e);
+            core.warning(e.message);
         }
     }
 });
+function isRateLimitError(e) {
+    return e.message.includes("rate limit");
+}
 
 
 /***/ }),
@@ -616,25 +653,39 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.updateTodo = exports.addTodo = exports.sleep = void 0;
+exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.updateTodo = exports.addTodo = exports.checkRateLimit = void 0;
 const helpers_1 = __nccwpck_require__(5008);
 const templates_1 = __nccwpck_require__(1429);
 const rest_1 = __nccwpck_require__(5375);
 const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
+let rateLimit = 0;
 const repoContext = __nccwpck_require__(6705);
-function sleep(milliseconds) {
+function checkRateLimit(decrease = true) {
     return __awaiter(this, void 0, void 0, function* () {
-        return yield new Promise(resolve => setTimeout(resolve, milliseconds));
+        if (rateLimit == 0) {
+            let rate = yield octokit.rateLimit.get();
+            rateLimit = rate.data.rate.remaining;
+            if (rate.data.rate.remaining == 0) {
+                const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
+                console.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
+                yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
+            }
+            rate = yield octokit.rateLimit.get();
+            rateLimit = rate.data.rate.remaining;
+        }
+        if (decrease)
+            rateLimit--;
+        return;
     });
 }
-exports.sleep = sleep;
+exports.checkRateLimit = checkRateLimit;
 function addTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
         console.debug(`Creating issue [${todo.title}]`);
         const val = yield octokit.issues.create(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
         todo.issueId = val.data.number;
-        yield sleep(1500);
+        yield checkRateLimit();
         console.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
     });
 }
@@ -647,7 +698,6 @@ function updateTodo(todo) {
         }
         console.debug(`Updating issue [${todo.issueId}]`);
         let val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, title: todo.title }));
-        yield sleep(1500);
         return val;
     });
 }
@@ -666,7 +716,7 @@ function closeTodo(todo) {
             issue_number: todo.issueId,
             state: 'closed'
         });
-        yield sleep(1500);
+        yield checkRateLimit();
         return val;
     });
 }
@@ -679,7 +729,7 @@ function reopenTodo(todo) {
         }
         console.debug(`Reopening issue [${todo.issueId}]`);
         let val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, state: 'open' }));
-        yield sleep(1500);
+        yield checkRateLimit();
         return val;
     });
 }
@@ -703,7 +753,7 @@ function addReferenceTodo(todo) {
         console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`);
         const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.similarTodo.issueId, body }));
         yield updateAssignees(todo.similarTodo);
-        yield sleep(1500);
+        yield checkRateLimit();
         return comment;
     });
 }

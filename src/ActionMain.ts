@@ -1,6 +1,6 @@
 import {Todo} from "./Todo";
 
-import {reopenTodo, sleep} from "./TodoHandler";
+import {reopenTodo, checkRateLimit} from "./TodoHandler";
 
 import {context as github} from "@actions/github";
 import * as core from "@actions/core";
@@ -12,6 +12,8 @@ const {cleanUpTodos} = require("./TodoMatcher");
 const {addTodo, closeTodo, addReferenceTodo, updateTodo} = require("./TodoHandler");
 
 module.exports = async () => {
+
+    await checkRateLimit(false);
 
     if (argumentContext.importAll) {
         if (github.eventName !== 'workflow_dispatch') {
@@ -56,6 +58,8 @@ module.exports = async () => {
         next = result.data.length === 100;
         page++;
 
+        await checkRateLimit()
+
         result.data.forEach((each: any) => {
 
             if (each.pull_request)
@@ -73,11 +77,6 @@ module.exports = async () => {
                     assignees: each.assignees.map((assignee: any) => assignee.login)
                 } as Todo)
         })
-
-        if(page % 5 == 0){
-            console.debug("Waiting 2 seconds because of github api rate limit")
-            await sleep(2000);
-        }
     }
 
     console.log(`${existingTodos.length} TODOs imported`)
@@ -86,11 +85,21 @@ module.exports = async () => {
 
     const toAdd = todos.filter(value => value.type == "add");
     console.log(`Adding ${toAdd.length} issues`)
+    await checkRateLimit(false);
     for (const value of toAdd) {
         try {
             await addTodo(value);
         } catch (e) {
+
+            if(isRateLimitError(e)){
+                //wait and retry
+                await checkRateLimit(false);
+                await addTodo(value);
+                continue
+            }
+
             console.warn(e)
+            core.warning((e as Error).message);
         }
     }
 
@@ -102,7 +111,16 @@ module.exports = async () => {
         try {
             await closeTodo(value);
         } catch (e) {
-            console.warn(e)
+
+            if(isRateLimitError(e)){
+                //wait and retry
+                await checkRateLimit(false);
+                await closeTodo(value);
+                continue
+            }
+
+            console.warn(e);
+            core.warning((e as Error).message);
         }
     }
 
@@ -112,7 +130,16 @@ module.exports = async () => {
         try {
             await updateTodo(value);
         } catch (e) {
-            console.warn(e)
+
+            if(isRateLimitError(e)){
+                //wait and retry
+                await checkRateLimit(false);
+                await updateTodo(value);
+                continue
+            }
+
+            console.warn(e);
+            core.warning((e as Error).message);
         }
     }
 
@@ -126,7 +153,16 @@ module.exports = async () => {
             try {
                 await reopenTodo(value.similarTodo)
             } catch (e) {
-                console.warn(e)
+
+                if(isRateLimitError(e)){
+                    //wait and retry
+                    await checkRateLimit(false);
+                    await reopenTodo(value);
+                    continue
+                }
+
+                console.warn(e);
+                core.warning((e as Error).message);
             }
             value.similarTodo.open = true;
         }
@@ -135,8 +171,20 @@ module.exports = async () => {
         try {
             await addReferenceTodo(value);
         } catch (e) {
-            console.warn(e)
+
+            if(isRateLimitError(e)){
+                //wait and retry
+                await checkRateLimit(false);
+                await addReferenceTodo(value);
+                continue
+            }
+
+            console.warn(e);
+            core.warning((e as Error).message);
         }
     }
-
 };
+
+function isRateLimitError(e: any){
+    return (e as Error).message.includes("rate limit");
+}
