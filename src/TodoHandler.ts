@@ -75,6 +75,8 @@ export async function updateTodo(todo: Todo) {
         // assignees will not get an update because it was probably just a typo fix
     })
 
+    await checkRateLimit()
+
     return val;
 }
 
@@ -85,9 +87,23 @@ export async function closeTodo(todo: Todo) {
         return
     }
 
+    const body = lineBreak(template.close(
+        {
+            ...repoContext.repoObject,
+            body: todo.bodyComment,
+            ...todo
+        })
+    )
+
     console.debug(`Closing issue [${todo.issueId}]`)
 
-    // TODO Send comment before close?
+    await octokit.issues.createComment({
+        ...repoContext.repoObject,
+        issue_number: todo.issueId,
+        body,
+    })
+
+    await checkRateLimit();
 
     let val = await octokit.issues.update({
         owner: repoContext.owner,
@@ -124,11 +140,15 @@ export async function reopenTodo(todo: Todo) {
 async function updateAssignees(todo: Todo) {
     if (!todo.assignees?.length) return
 
-    return await octokit.issues.update({
+    const val = await octokit.issues.update({
         ...repoContext.repoObject,
         issue_number: todo.issueId,
         assignees: todo.assignees,
     })
+
+    await checkRateLimit();
+
+    return val;
 }
 
 export async function addReferenceTodo(todo: Todo) {
@@ -154,9 +174,9 @@ export async function addReferenceTodo(todo: Todo) {
         body
     })
 
-    await updateAssignees(todo.similarTodo)
-
     await checkRateLimit()
+
+    await updateAssignees(todo.similarTodo)
 
     return comment
 

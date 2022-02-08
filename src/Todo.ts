@@ -65,7 +65,7 @@ async function generateTodosFromCommit() {
         // Get the details of this commit or PR
         const details = getDetails(chunk, changedLine)
 
-        let bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
+        let bodyComment : string = checkForBody(chunk.changes, index, matches.groups.beforeTag);
 
         if(title.length > 256) {
 
@@ -79,12 +79,11 @@ async function generateTodosFromCommit() {
           title = title.slice(0, 100) + '...'
         }
 
-        // add assignees mentioned in comment
-        `${title}\n${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))?.map(value => stripAt(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value))
+        // add assignees mentioned in comment body
+        `${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))?.map(value => stripAt(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value))
 
         console.log(`Item found [${title}] in [${repoContext.full_name}]`)
 
-        // Run the handler for this webhook listener
         todos.push({
           type: change.type,
           keyword: matches.groups.keyword,
