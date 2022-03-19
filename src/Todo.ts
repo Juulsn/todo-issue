@@ -88,6 +88,7 @@ async function generateTodosFromCommit() {
           type: change.type,
           keyword: matches.groups.keyword,
           filename: file.to,
+          escapedFilename: encodeURI(file.to as string),
           sha: process.env.GITHUB_SHA,
           bodyComment,
           changedLine,
@@ -109,6 +110,8 @@ export declare type Todo = {
   keyword: string
   bodyComment: string
   filename: string
+  escapedFilename: string
+  sha: string
   changedLine: number
   title: string
   chunk: Chunk

@@ -7,7 +7,7 @@ module.exports = `## {{ title }}
 
 {{/if}}
 {{#if range}}
-https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ filename }}#{{ range }}
+https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ escapedFilename }}#{{ range }}
 
 ---
 
