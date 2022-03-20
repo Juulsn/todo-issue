@@ -274,6 +274,7 @@ exports.argumentContext = {
     }),
     label: inputParser.getInput('label', { type: "array", disableable: true, default: true }),
     blobLines: inputParser.getInput('blobLines', { type: "number", default: 5, disableable: true }),
+    blobLinesBefore: inputParser.getInput('blobLinesBefore', { type: "number", default: 0 }),
     autoAssign: inputParser.getInput('autoAssign', {
         type: "array",
         disableable: true,
@@ -585,9 +586,26 @@ const { generateAssignedTo } = __nccwpck_require__(1386);
 /**
  * Get the file boundaries of the hunk
  */
-function getFileBoundaries(lastChange, line, padding = 2) {
-    const end = Math.min(line + padding, lastChange.ln || lastChange.ln2);
-    return { start: line, end };
+function getFileBoundaries(changes, line, paddingTop = 0, paddingBottom = 2) {
+    let firstChange = changes[0];
+    let lastChange = changes[changes.length - 1];
+    const firstChangedLine = firstChange.ln || firstChange.ln2;
+    const lastChangedLine = lastChange.ln || lastChange.ln2;
+    let start;
+    if (line == firstChangedLine) {
+        start = Math.max(0, line - paddingTop);
+    }
+    else {
+        start = Math.max(line - paddingTop, firstChangedLine);
+    }
+    let end;
+    if (line == lastChangedLine) {
+        end = line + paddingBottom;
+    }
+    else {
+        end = Math.min(line + paddingBottom, lastChangedLine);
+    }
+    return { start, end };
 }
 /**
  * Prepares some details about the TO_DO
@@ -624,8 +642,7 @@ function getDetails(chunk, line) {
         range = false;
     }
     else {
-        const lastChange = chunk.changes[chunk.changes.length - 1];
-        const { start, end } = getFileBoundaries(lastChange, line, ArgumentContext_1.argumentContext.blobLines);
+        const { start, end } = getFileBoundaries(chunk.changes, line, ArgumentContext_1.argumentContext.blobLinesBefore, ArgumentContext_1.argumentContext.blobLines);
         range = start === end ? `L${start}` : `L${start}-L${end}`;
     }
     return {

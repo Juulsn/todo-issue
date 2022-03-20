@@ -11,9 +11,29 @@ const {generateAssignedTo} = require('./AssignHelper')
 /**
  * Get the file boundaries of the hunk
  */
-function getFileBoundaries(lastChange: any, line: number, padding = 2) {
-  const end = Math.min(line + padding, lastChange.ln || lastChange.ln2)
-  return {start: line, end}
+function getFileBoundaries(changes: any[], line: number, paddingTop = 0, paddingBottom = 2) {
+
+  let firstChange = changes[0]
+  let lastChange = changes[changes.length - 1]
+
+  const firstChangedLine = firstChange.ln || firstChange.ln2;
+  const lastChangedLine = lastChange.ln || lastChange.ln2;
+
+  let start;
+  if(line == firstChangedLine){
+    start = Math.max(0, line - paddingTop);
+  } else {
+    start = Math.max(line - paddingTop, firstChangedLine)
+  }
+
+  let end;
+  if(line == lastChangedLine) {
+    end = line + paddingBottom;
+  } else {
+    end = Math.min(line + paddingBottom, lastChangedLine)
+  }
+
+  return {start, end}
 }
 
 /**
@@ -57,8 +77,7 @@ function getDetails(chunk: Chunk, line: number) {
     // Don't show the blob
     range = false
   } else {
-    const lastChange = chunk.changes[chunk.changes.length - 1]
-    const {start, end} = getFileBoundaries(lastChange, line, argumentContext.blobLines)
+    const {start, end} = getFileBoundaries(chunk.changes, line, argumentContext.blobLinesBefore, argumentContext.blobLines)
     range = start === end ? `L${start}` : `L${start}-L${end}`
   }
 

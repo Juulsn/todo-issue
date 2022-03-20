@@ -28,6 +28,9 @@ inputs:
   blobLines:
     description: false or max number of last changed lines which should be previewed in a issue. Defaults to 5
     required: false
+  blobLinesBefore:
+    description: max number of last changed lines before the first comment line which should be previewed in a issue. Defaults to 0
+    required: false
   titleSimilarity:
     description: false or number in percent of similarity which should be used for merging issues on creation. Defaults to 80
     required: false

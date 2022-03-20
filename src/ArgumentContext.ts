@@ -16,6 +16,7 @@ export const argumentContext = {
 
     label: inputParser.getInput('label', {type: "array", disableable: true, default: true}) as Array<string> | boolean,
     blobLines: inputParser.getInput('blobLines', {type: "number", default: 5, disableable: true}) as number | false,
+    blobLinesBefore: inputParser.getInput('blobLinesBefore', {type: "number", default: 0}) as number,
     autoAssign: inputParser.getInput('autoAssign', {
         type: "array",
         disableable: true,
