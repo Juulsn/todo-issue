@@ -593,18 +593,13 @@ function getFileBoundaries(changes, line, paddingTop = 0, paddingBottom = 2) {
     const lastChangedLine = lastChange.ln || lastChange.ln2;
     let start;
     if (line == firstChangedLine) {
-        start = Math.max(0, line - paddingTop);
+        start = Math.max(1, line - paddingTop);
     }
     else {
         start = Math.max(line - paddingTop, firstChangedLine);
     }
-    let end;
-    if (line == lastChangedLine) {
-        end = line + paddingBottom;
-    }
-    else {
-        end = Math.min(line + paddingBottom, lastChangedLine);
-    }
+    // we dont know the actual lines count of the file, so we cant add something like minPadding (at least for the bottom)
+    let end = Math.min(line + paddingBottom, lastChangedLine);
     return { start, end };
 }
 /**
