@@ -1,11 +1,13 @@
-import resetModules = jest.resetModules;
+import {config} from "dotenv";
 
-require('dotenv').config();
+// @ts-ignore
+import {testTodoChange} from "./helpers";
+
+config();
 
 jest.mock("../src/TodoHandler")
 jest.mock("../src/GitHubContext")
 
-const {testTodoChange} = require("./helpers")
 const context = require("../src/GitHubContext")
 
 let existingIssues: any[] = [];
@@ -13,7 +15,7 @@ let existingIssues: any[] = [];
 describe("Other TODO Change Tests", () => {
 
     beforeEach(() => {
-        resetModules()
+        jest.resetModules()
         existingIssues = []
     })
 
@@ -42,5 +44,4 @@ describe("Other TODO Change Tests", () => {
     it("Add TODO without Title", async () => {
         await test("TitleWithWhitespace")
     })
-
 })

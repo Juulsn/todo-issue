@@ -1,2 +1,3 @@
-const entry = require('./ActionMain')
+import entry from "./ActionMain";
+
 entry().then();

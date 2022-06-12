@@ -1,4 +1,5 @@
-const {argumentContext} = require("./ArgumentContext");
+import {argumentContext} from "./ArgumentContext";
+
 const levenshtein = require('js-levenshtein');
 
 export function reduceToList(array: string[]) {

@@ -1,10 +1,12 @@
 import {argumentContext} from "../src/ArgumentContext";
 import {checkSimilarity} from "../src/helpers";
-import resetModules = jest.resetModules;
 import {Todo} from "../src/Todo";
+import {config} from "dotenv";
 
-const {testTodoChange} = require("./helpers")
-require('dotenv').config();
+config();
+
+// @ts-ignore
+import {testTodoChange} from "./helpers";
 
 // shouldn't mock TodoHandler, but octokit..
 jest.mock("../src/TodoHandler")
@@ -18,7 +20,7 @@ let existingIssues: any[] = [];
 describe("Add Test", () => {
 
     beforeEach(() => {
-        resetModules()
+        jest.resetModules()
         existingIssues = []
     })
 

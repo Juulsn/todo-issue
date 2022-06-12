@@ -1,4 +1,4 @@
-const {checkSimilarity} = require("../src/helpers");
+import {checkSimilarity} from "../src/helpers";
 
 describe('Test Similarity', () => {
     it('returns similar', function () {

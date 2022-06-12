@@ -1,12 +1,14 @@
-const fs = require('fs')
-const path = require('path')
-const gitContext = require("../src/GitHubContext");
-const main = require("../src/ActionMain");
-const todoHandler = require("../src/TodoHandler");
+import fs from "fs";
 
-exports.testTodoChange = async (diffFolder: string, file: string, expects: any = {}) => {
+import * as todoHandler from "../src/TodoHandler";
+import main from "../src/ActionMain";
+import {getDiffFile} from "../src/GitHubContext";
+import path from "path";
 
-    gitContext.getDiffFile.mockImplementationOnce(() => {
+export async function testTodoChange(diffFolder: string, file: string, expects: any = {}) {
+
+    // @ts-ignore
+    getDiffFile.mockImplementationOnce(() => {
         return fs.readFileSync(path.join(__dirname, 'diffs', diffFolder, file + '.txt'), 'utf8');
     })
 

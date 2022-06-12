@@ -1,17 +1,12 @@
-import {Todo} from "./Todo";
-
-import {reopenTodo, checkRateLimit} from "./TodoHandler";
-
+import {generateTodosFromCommit, Todo} from "./Todo";
+import {reopenTodo, checkRateLimit, addTodo, closeTodo, addReferenceTodo, updateTodo} from "./TodoHandler";
 import {context as github} from "@actions/github";
 import * as core from "@actions/core";
+import {argumentContext} from "./ArgumentContext";
+import {getIssues} from "./GitHubContext";
+import {cleanUpTodos} from "./TodoMatcher";
 
-const {argumentContext} = require("./ArgumentContext");
-const {getIssues} = require("./GitHubContext");
-const {generateTodosFromCommit} = require("./Todo");
-const {cleanUpTodos} = require("./TodoMatcher");
-const {addTodo, closeTodo, addReferenceTodo, updateTodo} = require("./TodoHandler");
-
-module.exports = async () => {
+export default async () => {
 
     await checkRateLimit(false);
 
@@ -65,7 +60,7 @@ module.exports = async () => {
             if (each.pull_request)
                 return
 
-            console.debug(`Importing issue [${each.number}]`)
+            console.debug(`Importing issue [#${each.number}]`)
 
             existingTodos.push(
                 {
@@ -183,7 +178,7 @@ module.exports = async () => {
             core.warning((e as Error).message);
         }
     }
-};
+}
 
 function isRateLimitError(e: any){
     return (e as Error).message.includes("rate limit");

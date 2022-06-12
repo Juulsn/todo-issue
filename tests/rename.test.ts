@@ -1,11 +1,13 @@
-import resetModules = jest.resetModules;
+import {config} from "dotenv";
 
-require('dotenv').config();
+config();
+
+// @ts-ignore
+import {testTodoChange} from "./helpers";
 
 jest.mock("../src/TodoHandler")
 jest.mock("../src/GitHubContext")
 
-const {testTodoChange} = require("./helpers")
 const context = require("../src/GitHubContext")
 
 let existingIssues: any[] = [];
@@ -13,7 +15,7 @@ let existingIssues: any[] = [];
 describe("Rename Test", () => {
 
     beforeEach(() => {
-        resetModules()
+        jest.resetModules()
         existingIssues = []
     })
 

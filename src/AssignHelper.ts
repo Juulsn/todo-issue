@@ -1,8 +1,7 @@
 import {argumentContext} from "./ArgumentContext";
+import {addAt, reduceToList} from "./helpers";
 
-const { reduceToList, addAt } = require('./helpers')
-
-function generateAssignedTo (author: string, pr: number|boolean) {
+export function generateAssignedTo (author: string, pr: number|boolean) {
 
   const autoAssign = argumentContext.autoAssign;
 
@@ -15,8 +14,4 @@ function generateAssignedTo (author: string, pr: number|boolean) {
   const assigner = reduceToList(autoAssign.map(user => addAt(user)))
 
   return pr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`
-}
-
-module.exports = {
-  generateAssignedTo
 }

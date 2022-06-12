@@ -2,12 +2,11 @@ import {Todo} from "./Todo";
 import {lineBreak} from "./helpers";
 import {template} from "./templates";
 import {Octokit} from "@octokit/rest";
+import {repoObject} from "./RepoContext";
 
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
 let rateLimit = 0;
-
-const repoContext = require("./RepoContext");
 
 export async function checkRateLimit(decrease = true) {
 
@@ -26,7 +25,7 @@ export async function checkRateLimit(decrease = true) {
         rateLimit = rate.data.rate.remaining;
     }
 
-    if(decrease)
+    if (decrease)
         rateLimit--;
 
     return;
@@ -36,7 +35,7 @@ export async function addTodo(todo: Todo) {
 
     const body = lineBreak(template.issue(
         {
-            ...repoContext.repoObject,
+            ...repoObject,
             body: todo.bodyComment,
             ...todo
         })
@@ -45,7 +44,7 @@ export async function addTodo(todo: Todo) {
     console.debug(`Creating issue [${todo.title}]`)
 
     const val = await octokit.issues.create({
-        ...repoContext.repoObject,
+        ...repoObject,
         title: todo.title,
         body,
         labels: todo.labels,
@@ -69,7 +68,7 @@ export async function updateTodo(todo: Todo) {
     console.debug(`Updating issue [${todo.issueId}]`)
 
     let val = await octokit.issues.update({
-        ...repoContext.repoObject,
+        ...repoObject,
         issue_number: todo.issueId,
         title: todo.title,
         // assignees will not get an update because it was probably just a typo fix
@@ -89,7 +88,7 @@ export async function closeTodo(todo: Todo) {
 
     const body = lineBreak(template.close(
         {
-            ...repoContext.repoObject,
+            ...repoObject,
             body: todo.bodyComment,
             ...todo
         })
@@ -98,7 +97,7 @@ export async function closeTodo(todo: Todo) {
     console.debug(`Closing issue [${todo.issueId}]`)
 
     await octokit.issues.createComment({
-        ...repoContext.repoObject,
+        ...repoObject,
         issue_number: todo.issueId,
         body,
     })
@@ -106,8 +105,7 @@ export async function closeTodo(todo: Todo) {
     await checkRateLimit();
 
     let val = await octokit.issues.update({
-        owner: repoContext.owner,
-        repo: repoContext.repo,
+        ...repoObject,
         issue_number: todo.issueId,
         state: 'closed'
     })
@@ -127,7 +125,7 @@ export async function reopenTodo(todo: Todo) {
     console.debug(`Reopening issue [${todo.issueId}]`)
 
     let val = await octokit.issues.update({
-        ...repoContext.repoObject,
+        ...repoObject,
         issue_number: todo.issueId,
         state: 'open'
     })
@@ -138,10 +136,12 @@ export async function reopenTodo(todo: Todo) {
 }
 
 async function updateAssignees(todo: Todo) {
+
     if (!todo.assignees?.length) return
+    if (!todo.issueId) return
 
     const val = await octokit.issues.update({
-        ...repoContext.repoObject,
+        ...repoObject,
         issue_number: todo.issueId,
         assignees: todo.assignees,
     })
@@ -155,7 +155,7 @@ export async function addReferenceTodo(todo: Todo) {
 
     const body = lineBreak(template.comment(
         {
-            ...repoContext.repoObject,
+            ...repoObject,
             body: todo.bodyComment,
             ...todo
         })
@@ -169,7 +169,7 @@ export async function addReferenceTodo(todo: Todo) {
     console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`)
 
     const comment = await octokit.issues.createComment({
-        ...repoContext.repoObject,
+        ...repoObject,
         issue_number: todo.similarTodo.issueId,
         body
     })

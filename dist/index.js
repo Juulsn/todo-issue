@@ -2,7 +2,7 @@
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 7451:
-/***/ (function(module, exports, __nccwpck_require__) {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -39,18 +39,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const Todo_1 = __nccwpck_require__(9619);
 const TodoHandler_1 = __nccwpck_require__(3842);
 const github_1 = __nccwpck_require__(5438);
 const core = __importStar(__nccwpck_require__(2186));
-const { argumentContext } = __nccwpck_require__(3441);
-const { getIssues } = __nccwpck_require__(422);
-const { generateTodosFromCommit } = __nccwpck_require__(9619);
-const { cleanUpTodos } = __nccwpck_require__(8794);
-const { addTodo, closeTodo, addReferenceTodo, updateTodo } = __nccwpck_require__(3842);
-module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
+const ArgumentContext_1 = __nccwpck_require__(3441);
+const GitHubContext_1 = __nccwpck_require__(422);
+const TodoMatcher_1 = __nccwpck_require__(8794);
+exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     yield (0, TodoHandler_1.checkRateLimit)(false);
-    if (argumentContext.importAll) {
+    if (ArgumentContext_1.argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
             core.setFailed('importAll can only be used on trigger workflow_dispatch');
             return;
@@ -61,16 +60,16 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
         core.setFailed('Action can only be used on trigger push or in manual and importAll mode');
         return;
     }
-    if (argumentContext.taskSystem !== "GitHub") {
-        core.setFailed(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+    if (ArgumentContext_1.argumentContext.taskSystem !== "GitHub") {
+        core.setFailed(`${ArgumentContext_1.argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
         return;
     }
-    if (!argumentContext.keywords.length) {
+    if (!ArgumentContext_1.argumentContext.keywords.length) {
         core.setFailed('No keywords were specified!');
         return;
     }
     console.debug('Search for TODOs...');
-    let todos = yield generateTodosFromCommit();
+    let todos = yield (0, Todo_1.generateTodosFromCommit)();
     console.log(`${todos.length} TODOs found`);
     if (!todos.length)
         return;
@@ -79,14 +78,14 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
     let next = true;
     while (next) {
         console.log(`Requesting issues... page ${page}`);
-        const result = yield getIssues(page);
+        const result = yield (0, GitHubContext_1.getIssues)(page);
         next = result.data.length === 100;
         page++;
         yield (0, TodoHandler_1.checkRateLimit)();
         result.data.forEach((each) => {
             if (each.pull_request)
                 return;
-            console.debug(`Importing issue [${each.number}]`);
+            console.debug(`Importing issue [#${each.number}]`);
             existingTodos.push({
                 type: "exists",
                 title: each.title,
@@ -98,38 +97,38 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
         });
     }
     console.log(`${existingTodos.length} TODOs imported`);
-    todos = cleanUpTodos(todos, existingTodos);
+    todos = (0, TodoMatcher_1.cleanUpTodos)(todos, existingTodos);
     const toAdd = todos.filter(value => value.type == "add");
     console.log(`Adding ${toAdd.length} issues`);
     yield (0, TodoHandler_1.checkRateLimit)(false);
     for (const value of toAdd) {
         try {
-            yield addTodo(value);
+            yield (0, TodoHandler_1.addTodo)(value);
         }
         catch (e) {
             if (isRateLimitError(e)) {
                 //wait and retry
                 yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield addTodo(value);
+                yield (0, TodoHandler_1.addTodo)(value);
                 continue;
             }
             console.warn(e);
             core.warning(e.message);
         }
     }
-    if (argumentContext.importAll)
+    if (ArgumentContext_1.argumentContext.importAll)
         return;
     const toClose = todos.filter(value => value.type == "del");
     console.log(`Closing ${toClose.length} issues`);
     for (const value of toClose) {
         try {
-            yield closeTodo(value);
+            yield (0, TodoHandler_1.closeTodo)(value);
         }
         catch (e) {
             if (isRateLimitError(e)) {
                 //wait and retry
                 yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield closeTodo(value);
+                yield (0, TodoHandler_1.closeTodo)(value);
                 continue;
             }
             console.warn(e);
@@ -140,20 +139,20 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
     console.log(`Updating ${toUpdate.length} issues`);
     for (const value of toUpdate) {
         try {
-            yield updateTodo(value);
+            yield (0, TodoHandler_1.updateTodo)(value);
         }
         catch (e) {
             if (isRateLimitError(e)) {
                 //wait and retry
                 yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield updateTodo(value);
+                yield (0, TodoHandler_1.updateTodo)(value);
                 continue;
             }
             console.warn(e);
             core.warning(e.message);
         }
     }
-    if (!argumentContext.reopenClosed)
+    if (!ArgumentContext_1.argumentContext.reopenClosed)
         return;
     const toAddReference = todos.filter(value => value.type == "addReference");
     console.log(`Adding reference for ${toAddReference.length} issues`);
@@ -178,13 +177,13 @@ module.exports = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     for (const value of toAddReference) {
         try {
-            yield addReferenceTodo(value);
+            yield (0, TodoHandler_1.addReferenceTodo)(value);
         }
         catch (e) {
             if (isRateLimitError(e)) {
                 //wait and retry
                 yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield addReferenceTodo(value);
+                yield (0, TodoHandler_1.addReferenceTodo)(value);
                 continue;
             }
             console.warn(e);
@@ -254,61 +253,78 @@ exports.importEverything = importEverything;
 /***/ }),
 
 /***/ 3441:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.argumentContext = void 0;
-const github = __nccwpck_require__(5438);
-const inputParser = __nccwpck_require__(4623);
+const github_1 = __importDefault(__nccwpck_require__(5438));
+const action_input_parser_1 = __nccwpck_require__(4623);
 exports.argumentContext = {
-    keywords: inputParser.getInput('keywords', { type: 'array', default: ['TODO'] }),
-    bodyKeywords: inputParser.getInput('bodyKeywords', { type: 'array', default: [] }),
-    caseSensitive: inputParser.getInput('caseSensitive', { type: "boolean", default: true }),
-    titleSimilarity: inputParser.getInput("taskSystem", {
+    keywords: (0, action_input_parser_1.getInput)('keywords', { type: 'array', default: ['TODO'] }),
+    bodyKeywords: (0, action_input_parser_1.getInput)('bodyKeywords', { type: 'array', default: [] }),
+    caseSensitive: (0, action_input_parser_1.getInput)('caseSensitive', { type: "boolean", default: true }),
+    titleSimilarity: (0, action_input_parser_1.getInput)("taskSystem", {
         type: "number",
         disableable: true,
         default: 80
     }),
-    label: inputParser.getInput('label', { type: "array", disableable: true, default: true }),
-    blobLines: inputParser.getInput('blobLines', { type: "number", default: 5, disableable: true }),
-    blobLinesBefore: inputParser.getInput('blobLinesBefore', { type: "number", default: 0 }),
-    autoAssign: inputParser.getInput('autoAssign', {
+    label: (0, action_input_parser_1.getInput)('label', { type: "array", disableable: true, default: true }),
+    blobLines: (0, action_input_parser_1.getInput)('blobLines', { type: "number", default: 5, disableable: true }),
+    blobLinesBefore: (0, action_input_parser_1.getInput)('blobLinesBefore', { type: "number", default: 0 }),
+    autoAssign: (0, action_input_parser_1.getInput)('autoAssign', {
         type: "array",
         disableable: true,
         default: true
     }),
-    excludePattern: inputParser.getInput('excludePattern', { type: 'string' }),
-    taskSystem: inputParser.getInput("taskSystem", { type: "string", default: "GitHub" }),
-    importAll: (_c = (_b = (_a = github === null || github === void 0 ? void 0 : github.context) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.inputs) === null || _c === void 0 ? void 0 : _c.importAll,
-    reopenClosed: inputParser.getInput("reopenClosed", { type: "boolean", default: true })
+    excludePattern: (0, action_input_parser_1.getInput)('excludePattern', { type: 'string' }),
+    taskSystem: (0, action_input_parser_1.getInput)("taskSystem", { type: "string", default: "GitHub" }),
+    importAll: (_c = (_b = (_a = github_1.default === null || github_1.default === void 0 ? void 0 : github_1.default.context) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.inputs) === null || _c === void 0 ? void 0 : _c.importAll,
+    reopenClosed: (0, action_input_parser_1.getInput)("reopenClosed", { type: "boolean", default: true })
 };
 
 
 /***/ }),
 
 /***/ 1386:
-/***/ ((module, exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateAssignedTo = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
-const { reduceToList, addAt } = __nccwpck_require__(5008);
+const helpers_1 = __nccwpck_require__(5008);
 function generateAssignedTo(author, pr) {
     const autoAssign = ArgumentContext_1.argumentContext.autoAssign;
     if (autoAssign === false || !author)
         return '';
     if (autoAssign === true)
         return pr ? ` cc @${author}.` : ` It's been assigned to @${author} because they committed the code.`;
-    const assigner = reduceToList(autoAssign.map(user => addAt(user)));
+    const assigner = (0, helpers_1.reduceToList)(autoAssign.map(user => (0, helpers_1.addAt)(user)));
     return pr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`;
 }
-module.exports = {
-    generateAssignedTo
+exports.generateAssignedTo = generateAssignedTo;
+
+
+/***/ }),
+
+/***/ 4526:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const ActionMain_1 = __importDefault(__nccwpck_require__(7451));
+(0, ActionMain_1.default)().then();
 
 
 /***/ }),
@@ -342,7 +358,7 @@ exports.shouldExcludeFile = shouldExcludeFile;
 /***/ }),
 
 /***/ 422:
-/***/ (function(module, exports, __nccwpck_require__) {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -357,11 +373,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const ArgumentContext_1 = __nccwpck_require__(3441);
+exports.getUsername = exports.ensureLabelExists = exports.getDiffFile = exports.getIssues = exports.octokit = void 0;
 const rest_1 = __nccwpck_require__(5375);
 const github_1 = __nccwpck_require__(5438);
-const repoContext = __nccwpck_require__(6705);
-const octokit = new rest_1.Octokit({ auth: (_a = process.env.PRIVAT_READ_TOKEN) !== null && _a !== void 0 ? _a : process.env.GITHUB_TOKEN });
+const RepoContext_1 = __nccwpck_require__(6705);
+exports.octokit = new rest_1.Octokit({ auth: (_a = process.env.PRIVAT_READ_TOKEN) !== null && _a !== void 0 ? _a : process.env.GITHUB_TOKEN });
 /**
  *
  * @param page
@@ -369,9 +385,10 @@ const octokit = new rest_1.Octokit({ auth: (_a = process.env.PRIVAT_READ_TOKEN) 
  */
 function getIssues(page) {
     return __awaiter(this, void 0, void 0, function* () {
-        return octokit.issues.listForRepo(Object.assign(Object.assign({}, repoContext.repoObject), { per_page: 100, state: "all", page }));
+        return exports.octokit.issues.listForRepo(Object.assign(Object.assign({}, RepoContext_1.repoObject), { per_page: 100, state: "all", page }));
     });
 }
+exports.getIssues = getIssues;
 /**
  * @returns raw diff data
  */
@@ -379,76 +396,123 @@ function getDiffFile() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             console.debug(`${github_1.context.payload.commits.length} commits pushed`);
-            let diff = yield octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, repoContext.repoObject), { 
+            let diff = yield exports.octokit.repos.compareCommitsWithBasehead(Object.assign(Object.assign({}, RepoContext_1.repoObject), { 
                 // if payload.created is true it is most likely a new repo. But we don't want the initial commit to trigger create new issues, so it's okay if payload.before is 'empty'
                 basehead: `${github_1.context.payload.before}...${process.env.GITHUB_SHA}`, headers: { Accept: 'application/vnd.github.diff' }, method: 'GET' }));
+            // data is string because of headers: {Accept: 'application/vnd.github.diff'})
             return diff === null || diff === void 0 ? void 0 : diff.data;
         }
         catch (e) {
             console.error(e);
             console.error("Diff file might be too big");
-            return;
+            return undefined;
         }
     });
 }
-function getDefaultLabel() {
+exports.getDiffFile = getDiffFile;
+const existingLabels = [];
+function ensureLabelExists(label) {
     return __awaiter(this, void 0, void 0, function* () {
-        const newLabel = Object.assign(Object.assign({}, repoContext.repoObject), { name: 'todo :spiral_notepad:', color: '00B0D8', request: { retries: 0 } });
+        if (existingLabels.includes(label.name))
+            return;
         try {
-            yield octokit.issues.createLabel(newLabel);
+            yield exports.octokit.issues.createLabel(label);
         }
-        catch (e) {
+        catch (_a) {
             // Label already exists, ignore
         }
-        return newLabel.name;
+        existingLabels.push(label.name);
     });
 }
-function getLabels() {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (ArgumentContext_1.argumentContext.label === false)
-            return [];
-        if (ArgumentContext_1.argumentContext.label === true)
-            return [yield getDefaultLabel()];
-        else
-            return ArgumentContext_1.argumentContext.label;
-    });
-}
+exports.ensureLabelExists = ensureLabelExists;
 function getUsername() {
     var _a, _b;
     return (_b = (_a = github_1.context.payload.head_commit) === null || _a === void 0 ? void 0 : _a.author) === null || _b === void 0 ? void 0 : _b.username;
 }
-module.exports = {
-    getIssues,
-    getDiffFile,
-    getLabels,
-    getUsername,
-    octokit
+exports.getUsername = getUsername;
+
+
+/***/ }),
+
+/***/ 8520:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getLabels = exports.defaultLabelCache = void 0;
+const dotenv_1 = __nccwpck_require__(2437);
+(0, dotenv_1.config)();
+const RepoContext_1 = __nccwpck_require__(6705);
+const ArgumentContext_1 = __nccwpck_require__(3441);
+const GitHubContext_1 = __nccwpck_require__(422);
+function createLabel(name, color = undefined) {
+    return Object.assign(Object.assign({}, RepoContext_1.repoObject), { name,
+        color, request: { retries: 0 } });
+}
+function getDefaultLabels() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (exports.defaultLabelCache)
+            return exports.defaultLabelCache;
+        if (ArgumentContext_1.argumentContext.label === false)
+            return exports.defaultLabelCache = [];
+        if (ArgumentContext_1.argumentContext.label === true) {
+            const defaultLabel = createLabel('todo :spiral_notepad:', '00B0D8');
+            yield (0, GitHubContext_1.ensureLabelExists)(defaultLabel);
+            return exports.defaultLabelCache = [defaultLabel.name];
+        }
+        for (let labelName of ArgumentContext_1.argumentContext.label)
+            yield (0, GitHubContext_1.ensureLabelExists)(createLabel(labelName));
+        return exports.defaultLabelCache = ArgumentContext_1.argumentContext.label;
+    });
+}
+function getLabels(tags) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!tags || tags.length === 0)
+            return getDefaultLabels();
+        for (const value of tags)
+            yield (0, GitHubContext_1.ensureLabelExists)(createLabel(value));
+        return tags;
+    });
+}
+exports.getLabels = getLabels;
 
 
 /***/ }),
 
 /***/ 6705:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
-var _a, _b;
-const github = __nccwpck_require__(5438);
-const repoObject = {
-    owner: (_a = process.env.GITHUB_REPOSITORY) === null || _a === void 0 ? void 0 : _a.split('/')[0],
-    repo: (_b = process.env.GITHUB_REPOSITORY) === null || _b === void 0 ? void 0 : _b.split('/')[1]
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-module.exports = Object.assign(Object.assign({}, repoObject), { repoObject, full_name: process.env.GITHUB_REPOSITORY, 
-    /*default_ref: process.env.GITHUB_BASE_REF,
-    current_ref: process.env.GITHUB_REF,*/
-    isPr: !!github.context.issue.number, pull_number: github.context.issue.number });
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.prNr = exports.repoObject = exports.repo = exports.owner = void 0;
+const github_1 = __importDefault(__nccwpck_require__(5438));
+exports.owner = process.env.GITHUB_REPOSITORY.split('/')[0];
+exports.repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+exports.repoObject = { owner: exports.owner, repo: exports.repo };
+exports.prNr = (_c = (_b = (_a = github_1.default === null || github_1.default === void 0 ? void 0 : github_1.default.context) === null || _a === void 0 ? void 0 : _a.issue) === null || _b === void 0 ? void 0 : _b.number) !== null && _c !== void 0 ? _c : false;
+//export const default_ref = process.env.GITHUB_BASE_REF;
+//export const current_ref = process.env.GITHUB_REF;
 
 
 /***/ }),
 
 /***/ 9619:
-/***/ (function(module, exports, __nccwpck_require__) {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -484,20 +548,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateTodosFromCommit = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const FileHelper = __importStar(__nccwpck_require__(5708));
 const AllImporter_1 = __nccwpck_require__(497);
 const helpers_1 = __nccwpck_require__(5008);
-const repoContext = __nccwpck_require__(6705);
-const { checkForBody, getDetails } = __nccwpck_require__(3141);
-const parseDiff = __nccwpck_require__(4833);
-const { getDiffFile, getLabels } = __nccwpck_require__(422);
+const TodoDetails_1 = __nccwpck_require__(3141);
+const LabelHelper_1 = __nccwpck_require__(8520);
+const GitHubContext_1 = __nccwpck_require__(422);
+const parse_diff_1 = __importDefault(__nccwpck_require__(4833));
 function generateTodosFromCommit() {
     return __awaiter(this, void 0, void 0, function* () {
         const todos = [];
         // RegEx that matches lines with the configured keywords
-        const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${ArgumentContext_1.argumentContext.keywords.join('|')})\\b\\W*(?<title>.*)`, (!ArgumentContext_1.argumentContext.caseSensitive ? 'i' : ''));
+        const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${ArgumentContext_1.argumentContext.keywords.join('|')})\\b\\W*(?<title>((?!-->).)+)`, (!ArgumentContext_1.argumentContext.caseSensitive ? 'i' : ''));
         let files;
         // Diff as files or import all
         if (ArgumentContext_1.argumentContext.importAll) {
@@ -505,13 +573,11 @@ function generateTodosFromCommit() {
         }
         else {
             // Get the diff for this commit or PR
-            const diff = yield getDiffFile();
+            const diff = yield (0, GitHubContext_1.getDiffFile)();
             if (!diff)
                 return todos;
-            files = parseDiff(diff);
+            files = (0, parse_diff_1.default)(diff);
         }
-        // Ensure that all the labels we need are present
-        const labels = yield getLabels();
         yield Promise.all(files.map((file) => __awaiter(this, void 0, void 0, function* () {
             if (!file.to)
                 return;
@@ -531,16 +597,14 @@ function generateTodosFromCommit() {
                         return;
                     // Trim whitespace to ensure a clean title
                     let title = matches.groups.title.trim();
-                    if (title.endsWith('-->')) {
-                        title = title.slice(0, title.length - 3);
-                        // TODO Add to regex :)
-                    }
                     // GitHub wouldn't allow this, so let's ignore it.
                     if (!title)
                         return;
                     // Get the details of this commit or PR
-                    const details = getDetails(chunk, changedLine);
-                    let bodyComment = checkForBody(chunk.changes, index, matches.groups.beforeTag);
+                    const details = (0, TodoDetails_1.getDetails)(chunk, changedLine);
+                    let bodyComment = (0, TodoDetails_1.checkForBody)(chunk.changes, index, matches.groups.beforeTag);
+                    const tags = (0, TodoDetails_1.splitTagsFromTitle)(title);
+                    const labels = yield (0, LabelHelper_1.getLabels)(tags);
                     if (title.length > 256) {
                         let wholeTitle = title + '<br><br>';
                         if (bodyComment)
@@ -551,7 +615,7 @@ function generateTodosFromCommit() {
                     }
                     // add assignees mentioned in comment body
                     (_a = `${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))) === null || _a === void 0 ? void 0 : _a.map(value => (0, helpers_1.stripAt)(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value));
-                    console.log(`Item found [${title}] in [${repoContext.full_name}]`);
+                    console.log(`Item found [${title}]`);
                     todos.push(Object.assign({ type: change.type, keyword: matches.groups.keyword, filename: file.to, escapedFilename: encodeURI(file.to), sha: process.env.GITHUB_SHA, bodyComment,
                         changedLine,
                         title,
@@ -564,25 +628,23 @@ function generateTodosFromCommit() {
         return todos;
     });
 }
-module.exports = {
-    generateTodosFromCommit,
-};
+exports.generateTodosFromCommit = generateTodosFromCommit;
 
 
 /***/ }),
 
 /***/ 3141:
-/***/ ((module, exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getDetails = exports.splitTagsFromTitle = exports.checkForBody = exports.getFileBoundaries = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const helpers_1 = __nccwpck_require__(5008);
-const repoContext = __nccwpck_require__(6705);
-const { getUsername } = __nccwpck_require__(422);
-const { lineBreak } = __nccwpck_require__(5008);
-const { generateAssignedTo } = __nccwpck_require__(1386);
+const RepoContext_1 = __nccwpck_require__(6705);
+const GitHubContext_1 = __nccwpck_require__(422);
+const AssignHelper_1 = __nccwpck_require__(1386);
 /**
  * Get the file boundaries of the hunk
  */
@@ -602,6 +664,7 @@ function getFileBoundaries(changes, line, paddingTop = 0, paddingBottom = 2) {
     let end = Math.min(line + paddingBottom, lastChangedLine);
     return { start, end };
 }
+exports.getFileBoundaries = getFileBoundaries;
 /**
  * Prepares some details about the TO_DO
  */
@@ -620,16 +683,32 @@ function checkForBody(changes, changeIndex, beforeTag) {
         else {
             if (bodyPieces.length > 0 && bodyPieces[bodyPieces.length - 1] !== '\n')
                 bodyPieces.push(' ');
-            bodyPieces.push(lineBreak(matches.groups.body).trim());
+            bodyPieces.push((0, helpers_1.lineBreak)(matches.groups.body).trim());
         }
     }
     return bodyPieces.length ? bodyPieces.join('') : false;
 }
+exports.checkForBody = checkForBody;
+function splitTagsFromTitle(title) {
+    if (!title)
+        return [];
+    const getMatch = () => {
+        return title.match(new RegExp(`\\[([^\\]]+)]$`));
+    };
+    const tags = [];
+    let match = getMatch();
+    while (match) {
+        tags.push(match[1].trim());
+        title = title.replace(match[0], "").trimEnd();
+        match = getMatch();
+    }
+    return tags;
+}
+exports.splitTagsFromTitle = splitTagsFromTitle;
 function getDetails(chunk, line) {
-    const number = repoContext.isPr ? repoContext.pull_number : false;
-    const username = getUsername();
+    const username = (0, GitHubContext_1.getUsername)();
     // Generate a string that expresses who the issue is assigned to
-    const assignedToString = generateAssignedTo(username, number);
+    const assignedToString = (0, AssignHelper_1.generateAssignedTo)(username, RepoContext_1.prNr);
     const assignees = (0, helpers_1.assignFlow)(username);
     let range;
     if (!ArgumentContext_1.argumentContext.blobLines) {
@@ -643,16 +722,12 @@ function getDetails(chunk, line) {
     return {
         username,
         assignedToString,
-        number,
+        number: RepoContext_1.prNr,
         range,
         assignees
     };
 }
-module.exports = {
-    getFileBoundaries,
-    checkForBody,
-    getDetails
-};
+exports.getDetails = getDetails;
 
 
 /***/ }),
@@ -676,9 +751,9 @@ exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.upda
 const helpers_1 = __nccwpck_require__(5008);
 const templates_1 = __nccwpck_require__(1429);
 const rest_1 = __nccwpck_require__(5375);
+const RepoContext_1 = __nccwpck_require__(6705);
 const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
 let rateLimit = 0;
-const repoContext = __nccwpck_require__(6705);
 function checkRateLimit(decrease = true) {
     return __awaiter(this, void 0, void 0, function* () {
         if (rateLimit == 0) {
@@ -700,9 +775,9 @@ function checkRateLimit(decrease = true) {
 exports.checkRateLimit = checkRateLimit;
 function addTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
-        const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
+        const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
         console.debug(`Creating issue [${todo.title}]`);
-        const val = yield octokit.issues.create(Object.assign(Object.assign({}, repoContext.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
+        const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
         todo.issueId = val.data.number;
         yield checkRateLimit();
         console.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
@@ -716,7 +791,7 @@ function updateTodo(todo) {
             return;
         }
         console.debug(`Updating issue [${todo.issueId}]`);
-        let val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, title: todo.title }));
+        let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
         yield checkRateLimit();
         return val;
     });
@@ -728,16 +803,11 @@ function closeTodo(todo) {
             console.error(`Can't close issue [${todo.title}]! No issueId found`);
             return;
         }
-        const body = (0, helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
+        const body = (0, helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
         console.debug(`Closing issue [${todo.issueId}]`);
-        yield octokit.issues.createComment(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, body }));
+        yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
         yield checkRateLimit();
-        let val = yield octokit.issues.update({
-            owner: repoContext.owner,
-            repo: repoContext.repo,
-            issue_number: todo.issueId,
-            state: 'closed'
-        });
+        let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
         yield checkRateLimit();
         return val;
     });
@@ -750,7 +820,7 @@ function reopenTodo(todo) {
             return;
         }
         console.debug(`Reopening issue [${todo.issueId}]`);
-        let val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, state: 'open' }));
+        let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
         yield checkRateLimit();
         return val;
     });
@@ -761,7 +831,9 @@ function updateAssignees(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!((_a = todo.assignees) === null || _a === void 0 ? void 0 : _a.length))
             return;
-        const val = yield octokit.issues.update(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
+        if (!todo.issueId)
+            return;
+        const val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
         yield checkRateLimit();
         return val;
     });
@@ -769,13 +841,13 @@ function updateAssignees(todo) {
 function addReferenceTodo(todo) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, repoContext.repoObject), { body: todo.bodyComment }), todo)));
+        const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
         if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
             console.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
             return;
         }
         console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`);
-        const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, repoContext.repoObject), { issue_number: todo.similarTodo.issueId, body }));
+        const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
         yield checkRateLimit();
         yield updateAssignees(todo.similarTodo);
         return comment;
@@ -787,11 +859,12 @@ exports.addReferenceTodo = addReferenceTodo;
 /***/ }),
 
 /***/ 8794:
-/***/ ((module, exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.cleanUpTodos = void 0;
 const helpers_1 = __nccwpck_require__(5008);
 function cleanUpTodos(found, existing) {
     // Set IssueID for existing found Todos
@@ -898,9 +971,7 @@ function cleanUpTodos(found, existing) {
     });
     return found;
 }
-module.exports = {
-    cleanUpTodos
-};
+exports.cleanUpTodos = cleanUpTodos;
 
 
 /***/ }),
@@ -912,7 +983,7 @@ module.exports = {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.checkSimilarity = exports.escapeForRegExp = exports.lineBreak = exports.assignFlow = exports.stripAt = exports.addAt = exports.reduceToList = void 0;
-const { argumentContext } = __nccwpck_require__(3441);
+const ArgumentContext_1 = __nccwpck_require__(3441);
 const levenshtein = __nccwpck_require__(7468);
 function reduceToList(array) {
     return array.reduce((prev, value, i) => {
@@ -941,13 +1012,13 @@ function stripAt(str) {
 }
 exports.stripAt = stripAt;
 function assignFlow(author) {
-    if (argumentContext.autoAssign === true) {
+    if (ArgumentContext_1.argumentContext.autoAssign === true) {
         if (author)
             return [author];
         return [];
     }
-    else if (argumentContext.autoAssign) {
-        return argumentContext.autoAssign.map((n) => stripAt(n));
+    else if (ArgumentContext_1.argumentContext.autoAssign) {
+        return ArgumentContext_1.argumentContext.autoAssign.map((n) => stripAt(n));
     }
     return [];
 }
@@ -967,7 +1038,7 @@ function checkSimilarity(title0, title1) {
     // kann er entweder zusammen gefasst werden (wenn der Titel länger als z.B. 15 zeichen ist?)
     // oder der Titel kürzer ist und somit nicht aussagekräftig genug ist um es in dasselbe Issue zu stecken
     // -> fürs erste gehen wir mal davon aus so oft wie möglich zu mergen
-    return (argumentContext.titleSimilarity && levenshtein(title0, title1) <= ((title0.length + title1.length) / 2) * (1 - argumentContext.titleSimilarity / 100));
+    return (ArgumentContext_1.argumentContext.titleSimilarity && levenshtein(title0, title1) <= ((title0.length + title1.length) / 2) * (1 - ArgumentContext_1.argumentContext.titleSimilarity / 100));
 }
 exports.checkSimilarity = checkSimilarity;
 
@@ -975,11 +1046,12 @@ exports.checkSimilarity = checkSimilarity;
 /***/ }),
 
 /***/ 7788:
-/***/ ((module) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-module.exports = `## Closing Issue 
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = `## Closing Issue 
 
 ###### This comment was generated by [todo-issue](https://github.com/DerJuulsn/todo-issue) based on the deletion of a \`{{ keyword }}\` comment in {{ sha }}.`;
 
@@ -987,11 +1059,12 @@ module.exports = `## Closing Issue
 /***/ }),
 
 /***/ 4528:
-/***/ ((module) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-module.exports = `## {{ title }}
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = `## {{ title }}
 
 {{#if body}}
 {{ body }}
@@ -1011,33 +1084,43 @@ https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ escapedFilenam
 /***/ }),
 
 /***/ 1429:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.template = void 0;
 const hbs_1 = __nccwpck_require__(4882);
+const comment_1 = __importDefault(__nccwpck_require__(4528));
+const issue_1 = __importDefault(__nccwpck_require__(1671));
+const reopenClosed_1 = __importDefault(__nccwpck_require__(6652));
+const close_1 = __importDefault(__nccwpck_require__(7788));
+//import issueFromMergeTemplate from './issueFromMerge';
+//import titleChangeTemplate from './titleChange';
 // Register a githubHost global helper to make links respect the GHE_HOST env var
 hbs_1.handlebars.registerHelper('githubHost', () => process.env.GHE_HOST || 'github.com');
 exports.template = {
-    comment: hbs_1.handlebars.compile(__nccwpck_require__(4528)),
-    issue: hbs_1.handlebars.compile(__nccwpck_require__(1671)),
-    //issueFromMerge: handlebars.compile(require(`./issueFromMerge`)),
-    //titleChange: handlebars.compile(require(`./titleChange`)),
-    reopenClosed: hbs_1.handlebars.compile(__nccwpck_require__(6652)),
-    close: hbs_1.handlebars.compile(__nccwpck_require__(7788))
+    comment: hbs_1.handlebars.compile(comment_1.default),
+    issue: hbs_1.handlebars.compile(issue_1.default),
+    reopenClosed: hbs_1.handlebars.compile(reopenClosed_1.default),
+    close: hbs_1.handlebars.compile(close_1.default),
+    //issueFromMerge: handlebars.compile(issueFromMergeTemplate),
+    //titleChange: handlebars.compile(titleChangeTemplate),
 };
 
 
 /***/ }),
 
 /***/ 1671:
-/***/ ((module) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-module.exports = `{{#if body}}
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = `{{#if body}}
 {{ body }}
 
 ---
@@ -1055,11 +1138,12 @@ https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ escapedFilenam
 /***/ }),
 
 /***/ 6652:
-/***/ ((module) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-module.exports = `This issue has been reopened because the **\`{{ keyword }}\`** comment still exists in [**{{ filename }}**](https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ escapedFilename }}), as of {{ sha }}.
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = `This issue has been reopened because the **\`{{ keyword }}\`** comment still exists in [**{{ filename }}**](https://{{ githubHost }}/{{ owner }}/{{ repo }}/blob/{{ sha }}/{{ escapedFilename }}), as of {{ sha }}.
 
 ---
 
@@ -5340,6 +5424,105 @@ class Deprecation extends Error {
 }
 
 exports.Deprecation = Deprecation;
+
+
+/***/ }),
+
+/***/ 2437:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const fs = __nccwpck_require__(7147)
+const path = __nccwpck_require__(1017)
+const os = __nccwpck_require__(2037)
+
+function log (message) {
+  console.log(`[dotenv][DEBUG] ${message}`)
+}
+
+const NEWLINE = '\n'
+const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
+const RE_NEWLINES = /\\n/g
+const NEWLINES_MATCH = /\r\n|\n|\r/
+
+// Parses src into an Object
+function parse (src, options) {
+  const debug = Boolean(options && options.debug)
+  const obj = {}
+
+  // convert Buffers before splitting into lines and processing
+  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
+    // matching "KEY' and 'VAL' in 'KEY=VAL'
+    const keyValueArr = line.match(RE_INI_KEY_VAL)
+    // matched?
+    if (keyValueArr != null) {
+      const key = keyValueArr[1]
+      // default undefined or missing values to empty string
+      let val = (keyValueArr[2] || '')
+      const end = val.length - 1
+      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
+      const isSingleQuoted = val[0] === "'" && val[end] === "'"
+
+      // if single or double quoted, remove quotes
+      if (isSingleQuoted || isDoubleQuoted) {
+        val = val.substring(1, end)
+
+        // if double quoted, expand newlines
+        if (isDoubleQuoted) {
+          val = val.replace(RE_NEWLINES, NEWLINE)
+        }
+      } else {
+        // remove surrounding whitespace
+        val = val.trim()
+      }
+
+      obj[key] = val
+    } else if (debug) {
+      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
+    }
+  })
+
+  return obj
+}
+
+function resolveHome (envPath) {
+  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
+}
+
+// Populates process.env from .env file
+function config (options) {
+  let dotenvPath = path.resolve(process.cwd(), '.env')
+  let encoding = 'utf8'
+  const debug = Boolean(options && options.debug)
+
+  if (options) {
+    if (options.path != null) {
+      dotenvPath = resolveHome(options.path)
+    }
+    if (options.encoding != null) {
+      encoding = options.encoding
+    }
+  }
+
+  try {
+    // specifying an encoding returns a string instead of a buffer
+    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
+
+    Object.keys(parsed).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+        process.env[key] = parsed[key]
+      } else if (debug) {
+        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
+      }
+    })
+
+    return { parsed }
+  } catch (e) {
+    return { error: e }
+  }
+}
+
+module.exports.config = config
+module.exports.parse = parse
 
 
 /***/ }),
@@ -19224,16 +19407,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-
-const entry = __nccwpck_require__(7451);
-entry().then();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(4526);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
