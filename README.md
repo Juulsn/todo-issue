@@ -94,6 +94,17 @@ jobs:
 | `excludePattern`  | `string`                    | Exclude certain files and/or directories. Should be a valid regular expression.                                                                                                                                                                   | `null`     |
 | `titleSimilarity` | `number, false`             | Number in percent of similarity which should be used for merging issues on creation.                                                                                                                                                              | `80`       |
 
+### Labels
+
+Add labels with \[square brackets\] at the end of a comment, to tag your issue with these tag
+
+```
+// TODO make this button red [frontend]
+// this button should be red to clearify something
+```
+
+The above comment will add a frontend label to your GitHub Issue
+
 ### Import all
 
 There is also an option to import all TODOs to GitHub Issues by running the workflow manually in the actions tab.
