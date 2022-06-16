@@ -30,7 +30,7 @@ function getWheel() {
 
 **todo-issue** would create a new issue:
 
-![todo-issue](./.github/preview.png)
+![preview](https://user-images.githubusercontent.com/25909319/174055277-02e2d60b-df35-42fe-b9c0-ee6ad399dfb2.png)
 
 **Note:** While the above example is in javascript, **todo-issue** works in any language as long as you provide a
 valid [styling](#Styling).
