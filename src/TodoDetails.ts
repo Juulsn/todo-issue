@@ -3,8 +3,6 @@ import {argumentContext} from "./ArgumentContext";
 import {assignFlow, escapeForRegExp, lineBreak} from "./helpers";
 import {prNr} from "./RepoContext";
 import {getUsername} from "./GitHubContext";
-import {generateAssignedTo} from "./AssignHelper";
-
 
 /**
  * Get the file boundaries of the hunk
@@ -83,9 +81,6 @@ export function getDetails(chunk: Chunk, line: number) {
 
     const username = getUsername()
 
-    // Generate a string that expresses who the issue is assigned to
-    const assignedToString = generateAssignedTo(username, prNr)
-
     const assignees = assignFlow(username);
 
     let range: false | string
@@ -102,7 +97,6 @@ export function getDetails(chunk: Chunk, line: number) {
 
     return {
         username,
-        assignedToString,
         number: prNr,
         range,
         assignees

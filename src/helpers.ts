@@ -3,6 +3,10 @@ import {argumentContext} from "./ArgumentContext";
 const levenshtein = require('js-levenshtein');
 
 export function reduceToList(array: string[]) {
+
+    if(array.length == 1)
+        return array[0]
+
     return array.reduce((prev, value, i) => {
         if (i + 1 === array.length) {
             return prev + ` and ${value}`
@@ -24,7 +28,7 @@ export function stripAt(str: string) {
     return str
 }
 
-export function assignFlow(author: string) : string[] {
+export function assignFlow(author: string | undefined) : string[] {
     if (argumentContext.autoAssign === true) {
         if(author)
             return [author]

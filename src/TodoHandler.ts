@@ -3,6 +3,7 @@ import {lineBreak} from "./helpers";
 import {template} from "./templates";
 import {Octokit} from "@octokit/rest";
 import {repoObject} from "./RepoContext";
+import core from "@actions/core";
 
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
@@ -17,7 +18,7 @@ export async function checkRateLimit(decrease = true) {
 
         if (rate.data.rate.remaining == 0) {
             const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
-            console.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`)
+            core.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`)
             await new Promise(resolve => setTimeout(resolve, timeToWaitInMillis))
         }
 
@@ -41,7 +42,7 @@ export async function addTodo(todo: Todo) {
         })
     )
 
-    console.debug(`Creating issue [${todo.title}]`)
+    core.info(`Creating issue with title [${todo.title}] because of a comment`)
 
     const val = await octokit.issues.create({
         ...repoObject,
@@ -55,17 +56,17 @@ export async function addTodo(todo: Todo) {
 
     await checkRateLimit();
 
-    console.debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
+    core.debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
 }
 
 export async function updateTodo(todo: Todo) {
 
     if (!todo.issueId) {
-        console.error(`Can't update issue [${todo.title}]! No issueId found`)
+        core.error(`Can't update issue [${todo.title}]! No issueId found`)
         return
     }
 
-    console.debug(`Updating issue [${todo.issueId}]`)
+    core.debug(`Updating issue #${todo.issueId} because the title were changed`)
 
     let val = await octokit.issues.update({
         ...repoObject,
@@ -82,7 +83,7 @@ export async function updateTodo(todo: Todo) {
 export async function closeTodo(todo: Todo) {
 
     if (!todo.issueId) {
-        console.error(`Can't close issue [${todo.title}]! No issueId found`)
+        core.error(`Can't close issue [${todo.title}]! No issueId found`)
         return
     }
 
@@ -94,7 +95,7 @@ export async function closeTodo(todo: Todo) {
         })
     )
 
-    console.debug(`Closing issue [${todo.issueId}]`)
+    core.debug(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`)
 
     await octokit.issues.createComment({
         ...repoObject,
@@ -118,11 +119,11 @@ export async function closeTodo(todo: Todo) {
 export async function reopenTodo(todo: Todo) {
 
     if (!todo.issueId) {
-        console.error(`Can't reopen issue [${todo.title}]! No issueId found`)
+        core.error(`Can't reopen issue [${todo.title}]! No issueId found`)
         return
     }
 
-    console.debug(`Reopening issue [${todo.issueId}]`)
+    core.info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`)
 
     let val = await octokit.issues.update({
         ...repoObject,
@@ -162,11 +163,11 @@ export async function addReferenceTodo(todo: Todo) {
     )
 
     if (!todo.similarTodo?.issueId) {
-        console.error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo?.title}]. No issueId found`)
+        core.error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo?.title}]. No issueId found`)
         return
     }
 
-    console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`)
+    core.info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${todo.similarTodo?.title}] because it is similar to a the new issue [${todo.title}]`)
 
     const comment = await octokit.issues.createComment({
         ...repoObject,

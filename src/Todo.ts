@@ -2,13 +2,12 @@ import {Chunk, File} from "parse-diff";
 import {argumentContext} from "./ArgumentContext";
 import * as FileHelper from './FileHelper'
 import {importEverything} from "./AllImporter";
-import {stripAt} from "./helpers";
 import {checkForBody, getDetails, splitTagsFromTitle} from "./TodoDetails";
 import {getLabels} from "./LabelHelper";
-import {getDiffFile} from "./GitHubContext";
+import {getDiffFile, getUsername} from "./GitHubContext";
 
 import parseDiff from "parse-diff";
-
+import {generateAssignedTo, getMentionedAssignees} from "./AssignHelper";
 
 export async function generateTodosFromCommit() {
 
@@ -64,6 +63,22 @@ export async function generateTodosFromCommit() {
                 title = newTitle;
                 const labels: string[] = await getLabels(tags);
 
+                // add assignees mentioned in title,
+                // in the title we don't want anyone to get mentioned, so we save the mentioned ones but cut them out from the string
+                const [titleWithoutMentionedAssignees, assigneesMentionedInTitle] = getMentionedAssignees(title, true);
+                title = titleWithoutMentionedAssignees;
+                assigneesMentionedInTitle.forEach(value => !details.assignees.includes(value) && details.assignees.push(value))
+
+                // add assignees mentioned in comment body
+                // here we don't care about them being still in the comment, so we will leave them there.
+                if (bodyComment) {
+                    const [, assigneesMentionedInBody] = getMentionedAssignees(bodyComment, false);
+                    assigneesMentionedInBody.forEach(value => !details.assignees.includes(value) && details.assignees.push(value))
+                }
+
+                // Generate a string that expresses who the issue is assigned to
+                const assignedToString = generateAssignedTo(getUsername(), details.assignees)
+
                 if (title.length > 256) {
 
                     let wholeTitle = title + '<br><br>';
@@ -76,9 +91,6 @@ export async function generateTodosFromCommit() {
                     title = title.slice(0, 100) + '...'
                 }
 
-                // add assignees mentioned in comment body
-                `${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))?.map(value => stripAt(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value))
-
                 console.log(`Item found [${title}]`)
 
                 todos.push({
@@ -87,6 +99,7 @@ export async function generateTodosFromCommit() {
                     filename: file.to,
                     escapedFilename: encodeURI(file.to as string),
                     sha: process.env.GITHUB_SHA,
+                    assignedToString,
                     bodyComment,
                     changedLine,
                     title,

@@ -1,17 +1,34 @@
 import {argumentContext} from "./ArgumentContext";
-import {addAt, reduceToList} from "./helpers";
+import {addAt, reduceToList, stripAt} from "./helpers";
+import {prNr} from "./RepoContext";
 
-export function generateAssignedTo (author: string, pr: number|boolean) {
+export function generateAssignedTo(author: string, assignees: string[]) {
 
-  const autoAssign = argumentContext.autoAssign;
+    const autoAssign = argumentContext.autoAssign;
 
-  if (autoAssign === false || !author)
-    return ''
+    if (!assignees.length)
+        return ''
 
-  if (autoAssign === true)
-    return pr ? ` cc @${author}.` : ` It's been assigned to @${author} because they committed the code.`
+    const assigner = reduceToList(assignees.map(user => addAt(user)))
 
-  const assigner = reduceToList(autoAssign.map(user => addAt(user)))
+    if (Array.isArray(autoAssign) ? autoAssign.sort().toString() === assignees.sort().toString() : false)
+        return prNr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`
 
-  return pr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`
+    if (autoAssign === true && [author].toString() === assignees.toString())
+        return prNr ? ` cc @${assigner}.` : ` It's been assigned to ${assigner} because they committed the code.`
+
+    return prNr ? ` cc ${assigner}` : ` It's been assigned to ${assigner} because they were mentioned in the comment.`
+}
+
+export function getMentionedAssignees(content: string, clipMentionedFromContent: boolean): [string, string[]] {
+
+    const regex = new RegExp(`@[a-zA-Z0-9@._-]+\\b`);
+
+    const assignees = content.match(regex)?.map(value => stripAt(value)) ?? [];
+
+    if (clipMentionedFromContent)
+        content = content.replace(regex, "").trim()
+
+    return [content, assignees];
+
 }

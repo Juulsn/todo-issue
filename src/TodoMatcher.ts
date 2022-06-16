@@ -1,7 +1,7 @@
 import {Todo} from "./Todo";
 import {checkSimilarity} from "./helpers";
 
-export function cleanUpTodos(found: Todo[], existing: Todo[]) {
+export function cleanUpTodos(found: Todo[], existing: Todo[]): Todo[] {
 
     // Set IssueID for existing found Todos
     found.forEach(foundTodo => {

@@ -297,19 +297,31 @@ exports.argumentContext = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateAssignedTo = void 0;
+exports.getMentionedAssignees = exports.generateAssignedTo = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const helpers_1 = __nccwpck_require__(5008);
-function generateAssignedTo(author, pr) {
+const RepoContext_1 = __nccwpck_require__(6705);
+function generateAssignedTo(author, assignees) {
     const autoAssign = ArgumentContext_1.argumentContext.autoAssign;
-    if (autoAssign === false || !author)
+    if (!assignees.length)
         return '';
-    if (autoAssign === true)
-        return pr ? ` cc @${author}.` : ` It's been assigned to @${author} because they committed the code.`;
-    const assigner = (0, helpers_1.reduceToList)(autoAssign.map(user => (0, helpers_1.addAt)(user)));
-    return pr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`;
+    const assigner = (0, helpers_1.reduceToList)(assignees.map(user => (0, helpers_1.addAt)(user)));
+    if (Array.isArray(autoAssign) ? autoAssign.sort().toString() === assignees.sort().toString() : false)
+        return RepoContext_1.prNr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`;
+    if (autoAssign === true && [author].toString() === assignees.toString())
+        return RepoContext_1.prNr ? ` cc @${assigner}.` : ` It's been assigned to ${assigner} because they committed the code.`;
+    return RepoContext_1.prNr ? ` cc ${assigner}` : ` It's been assigned to ${assigner} because they were mentioned in the comment.`;
 }
 exports.generateAssignedTo = generateAssignedTo;
+function getMentionedAssignees(content, clipMentionedFromContent) {
+    var _a, _b;
+    const regex = new RegExp(`@[a-zA-Z0-9@._-]+\\b`);
+    const assignees = (_b = (_a = content.match(regex)) === null || _a === void 0 ? void 0 : _a.map(value => (0, helpers_1.stripAt)(value))) !== null && _b !== void 0 ? _b : [];
+    if (clipMentionedFromContent)
+        content = content.replace(regex, "").trim();
+    return [content, assignees];
+}
+exports.getMentionedAssignees = getMentionedAssignees;
 
 
 /***/ }),
@@ -556,11 +568,11 @@ exports.generateTodosFromCommit = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const FileHelper = __importStar(__nccwpck_require__(5708));
 const AllImporter_1 = __nccwpck_require__(497);
-const helpers_1 = __nccwpck_require__(5008);
 const TodoDetails_1 = __nccwpck_require__(3141);
 const LabelHelper_1 = __nccwpck_require__(8520);
 const GitHubContext_1 = __nccwpck_require__(422);
 const parse_diff_1 = __importDefault(__nccwpck_require__(4833));
+const AssignHelper_1 = __nccwpck_require__(1386);
 function generateTodosFromCommit() {
     return __awaiter(this, void 0, void 0, function* () {
         const todos = [];
@@ -587,7 +599,6 @@ function generateTodosFromCommit() {
             yield Promise.all(file.chunks.map((chunk) => __awaiter(this, void 0, void 0, function* () {
                 // Chunks can have multiple changes
                 yield Promise.all(chunk.changes.map((change, index) => __awaiter(this, void 0, void 0, function* () {
-                    var _a;
                     if (change.type === "normal")
                         return;
                     const changedLine = change.ln;
@@ -606,6 +617,19 @@ function generateTodosFromCommit() {
                     const [newTitle, tags] = (0, TodoDetails_1.splitTagsFromTitle)(title);
                     title = newTitle;
                     const labels = yield (0, LabelHelper_1.getLabels)(tags);
+                    // add assignees mentioned in title,
+                    // in the title we don't want anyone to get mentioned, so we save the mentioned ones but cut them out from the string
+                    const [titleWithoutMentionedAssignees, assigneesMentionedInTitle] = (0, AssignHelper_1.getMentionedAssignees)(title, true);
+                    title = titleWithoutMentionedAssignees;
+                    assigneesMentionedInTitle.forEach(value => !details.assignees.includes(value) && details.assignees.push(value));
+                    // add assignees mentioned in comment body
+                    // here we don't care about them being still in the comment, so we will leave them there.
+                    if (bodyComment) {
+                        const [, assigneesMentionedInBody] = (0, AssignHelper_1.getMentionedAssignees)(bodyComment, false);
+                        assigneesMentionedInBody.forEach(value => !details.assignees.includes(value) && details.assignees.push(value));
+                    }
+                    // Generate a string that expresses who the issue is assigned to
+                    const assignedToString = (0, AssignHelper_1.generateAssignedTo)((0, GitHubContext_1.getUsername)(), details.assignees);
                     if (title.length > 256) {
                         let wholeTitle = title + '<br><br>';
                         if (bodyComment)
@@ -614,10 +638,9 @@ function generateTodosFromCommit() {
                             bodyComment = wholeTitle;
                         title = title.slice(0, 100) + '...';
                     }
-                    // add assignees mentioned in comment body
-                    (_a = `${bodyComment}`.match(new RegExp(`@[a-zA-Z0-9@._-]+\\b`))) === null || _a === void 0 ? void 0 : _a.map(value => (0, helpers_1.stripAt)(value)).forEach(value => !details.assignees.includes(value) && details.assignees.push(value));
                     console.log(`Item found [${title}]`);
-                    todos.push(Object.assign({ type: change.type, keyword: matches.groups.keyword, filename: file.to, escapedFilename: encodeURI(file.to), sha: process.env.GITHUB_SHA, bodyComment,
+                    todos.push(Object.assign({ type: change.type, keyword: matches.groups.keyword, filename: file.to, escapedFilename: encodeURI(file.to), sha: process.env.GITHUB_SHA, assignedToString,
+                        bodyComment,
                         changedLine,
                         title,
                         chunk,
@@ -645,7 +668,6 @@ const ArgumentContext_1 = __nccwpck_require__(3441);
 const helpers_1 = __nccwpck_require__(5008);
 const RepoContext_1 = __nccwpck_require__(6705);
 const GitHubContext_1 = __nccwpck_require__(422);
-const AssignHelper_1 = __nccwpck_require__(1386);
 /**
  * Get the file boundaries of the hunk
  */
@@ -709,8 +731,6 @@ function splitTagsFromTitle(title) {
 exports.splitTagsFromTitle = splitTagsFromTitle;
 function getDetails(chunk, line) {
     const username = (0, GitHubContext_1.getUsername)();
-    // Generate a string that expresses who the issue is assigned to
-    const assignedToString = (0, AssignHelper_1.generateAssignedTo)(username, RepoContext_1.prNr);
     const assignees = (0, helpers_1.assignFlow)(username);
     let range;
     if (!ArgumentContext_1.argumentContext.blobLines) {
@@ -723,7 +743,6 @@ function getDetails(chunk, line) {
     }
     return {
         username,
-        assignedToString,
         number: RepoContext_1.prNr,
         range,
         assignees
@@ -748,12 +767,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.updateTodo = exports.addTodo = exports.checkRateLimit = void 0;
 const helpers_1 = __nccwpck_require__(5008);
 const templates_1 = __nccwpck_require__(1429);
 const rest_1 = __nccwpck_require__(5375);
 const RepoContext_1 = __nccwpck_require__(6705);
+const core_1 = __importDefault(__nccwpck_require__(2186));
 const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
 let rateLimit = 0;
 function checkRateLimit(decrease = true) {
@@ -763,7 +786,7 @@ function checkRateLimit(decrease = true) {
             rateLimit = rate.data.rate.remaining;
             if (rate.data.rate.remaining == 0) {
                 const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
-                console.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
+                core_1.default.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
                 yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
             }
             rate = yield octokit.rateLimit.get();
@@ -778,21 +801,21 @@ exports.checkRateLimit = checkRateLimit;
 function addTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-        console.debug(`Creating issue [${todo.title}]`);
+        core_1.default.info(`Creating issue with title [${todo.title}] because of a comment`);
         const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
         todo.issueId = val.data.number;
         yield checkRateLimit();
-        console.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
+        core_1.default.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
     });
 }
 exports.addTodo = addTodo;
 function updateTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!todo.issueId) {
-            console.error(`Can't update issue [${todo.title}]! No issueId found`);
+            core_1.default.error(`Can't update issue [${todo.title}]! No issueId found`);
             return;
         }
-        console.debug(`Updating issue [${todo.issueId}]`);
+        core_1.default.debug(`Updating issue #${todo.issueId} because the title were changed`);
         let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
         yield checkRateLimit();
         return val;
@@ -802,11 +825,11 @@ exports.updateTodo = updateTodo;
 function closeTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!todo.issueId) {
-            console.error(`Can't close issue [${todo.title}]! No issueId found`);
+            core_1.default.error(`Can't close issue [${todo.title}]! No issueId found`);
             return;
         }
         const body = (0, helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-        console.debug(`Closing issue [${todo.issueId}]`);
+        core_1.default.debug(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
         yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
         yield checkRateLimit();
         let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
@@ -818,10 +841,10 @@ exports.closeTodo = closeTodo;
 function reopenTodo(todo) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!todo.issueId) {
-            console.error(`Can't reopen issue [${todo.title}]! No issueId found`);
+            core_1.default.error(`Can't reopen issue [${todo.title}]! No issueId found`);
             return;
         }
-        console.debug(`Reopening issue [${todo.issueId}]`);
+        core_1.default.info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
         let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
         yield checkRateLimit();
         return val;
@@ -841,14 +864,14 @@ function updateAssignees(todo) {
     });
 }
 function addReferenceTodo(todo) {
-    var _a, _b;
+    var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
         if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
-            console.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
+            core_1.default.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
             return;
         }
-        console.debug(`Adding reference to issue [${todo.similarTodo.issueId}]`);
+        core_1.default.info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.title}] because it is similar to a the new issue [${todo.title}]`);
         const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
         yield checkRateLimit();
         yield updateAssignees(todo.similarTodo);
@@ -988,6 +1011,8 @@ exports.checkSimilarity = exports.escapeForRegExp = exports.lineBreak = exports.
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const levenshtein = __nccwpck_require__(7468);
 function reduceToList(array) {
+    if (array.length == 1)
+        return array[0];
     return array.reduce((prev, value, i) => {
         if (i + 1 === array.length) {
             return prev + ` and ${value}`;
