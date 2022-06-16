@@ -15,12 +15,20 @@ describe("Tests Tags", () => {
     })
 
     it("find tags at the end", () => {
-        let tags = splitTagsFromTitle("// TODO Create a new GITHUB issue [With This Tag] [And-this-Tag]");
+        const [title, tags] = splitTagsFromTitle("Create a new GITHUB issue [With This Tag] [And-this-Tag]");
+        expect(title).toEqual("Create a new GITHUB issue");
         expect(tags.sort()).toEqual(['With This Tag', 'And-this-Tag'].sort())
     })
 
     it("find tags does not include tags from in between", () => {
-        let tags = splitTagsFromTitle("// TODO Create a new [some note] GITHUB issue [Tag]");
+        const [title, tags] = splitTagsFromTitle("Create a new [some note] GITHUB issue [Tag]");
+        expect(title).toEqual("Create a new [some note] GITHUB issue");
+        expect(tags).toEqual(['Tag'])
+    })
+
+    it("find tags does not remove same tag from in between if same tag on the end", () => {
+        const [title, tags] = splitTagsFromTitle("Create a new [Tag] GITHUB issue [Tag]");
+        expect(title).toEqual("Create a new [Tag] GITHUB issue");
         expect(tags).toEqual(['Tag'])
     })
 

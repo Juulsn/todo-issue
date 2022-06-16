@@ -603,7 +603,8 @@ function generateTodosFromCommit() {
                     // Get the details of this commit or PR
                     const details = (0, TodoDetails_1.getDetails)(chunk, changedLine);
                     let bodyComment = (0, TodoDetails_1.checkForBody)(chunk.changes, index, matches.groups.beforeTag);
-                    const tags = (0, TodoDetails_1.splitTagsFromTitle)(title);
+                    const [newTitle, tags] = (0, TodoDetails_1.splitTagsFromTitle)(title);
+                    title = newTitle;
                     const labels = yield (0, LabelHelper_1.getLabels)(tags);
                     if (title.length > 256) {
                         let wholeTitle = title + '<br><br>';
@@ -691,18 +692,19 @@ function checkForBody(changes, changeIndex, beforeTag) {
 exports.checkForBody = checkForBody;
 function splitTagsFromTitle(title) {
     if (!title)
-        return [];
+        return [title, []];
+    const tagFindRegex = new RegExp(`\\[([^\\]]+)]$`); // finds always tags at the end
     const getMatch = () => {
-        return title.match(new RegExp(`\\[([^\\]]+)]$`));
+        return title.match(tagFindRegex);
     };
     const tags = [];
     let match = getMatch();
     while (match) {
         tags.push(match[1].trim());
-        title = title.replace(match[0], "").trimEnd();
+        title = title.replace(tagFindRegex, "").trimEnd();
         match = getMatch();
     }
-    return tags;
+    return [title, tags];
 }
 exports.splitTagsFromTitle = splitTagsFromTitle;
 function getDetails(chunk, line) {

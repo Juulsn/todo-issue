@@ -59,7 +59,9 @@ export async function generateTodosFromCommit() {
 
                 let bodyComment: string | false = checkForBody(chunk.changes, index, matches.groups.beforeTag);
 
-                const tags: string[] = splitTagsFromTitle(title);
+                const [newTitle, tags] = splitTagsFromTitle(title);
+
+                title = newTitle;
                 const labels: string[] = await getLabels(tags);
 
                 if (title.length > 256) {

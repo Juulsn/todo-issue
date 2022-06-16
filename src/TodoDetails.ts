@@ -55,13 +55,15 @@ export function checkForBody(changes: Change[], changeIndex: number, beforeTag: 
     return bodyPieces.length ? bodyPieces.join('') : false
 }
 
-export function splitTagsFromTitle(title: string): string[] {
+export function splitTagsFromTitle(title: string): [string, string[]] {
 
     if (!title)
-        return [];
+        return [title, []];
+
+    const tagFindRegex = new RegExp(`\\[([^\\]]+)]$`); // finds always tags at the end
 
     const getMatch = () => {
-        return title.match(new RegExp(`\\[([^\\]]+)]$`));
+        return title.match(tagFindRegex);
     }
 
     const tags: string[] = [];
@@ -70,11 +72,11 @@ export function splitTagsFromTitle(title: string): string[] {
 
     while (match) {
         tags.push(match[1].trim());
-        title = title.replace(match[0], "").trimEnd();
+        title = title.replace(tagFindRegex, "").trimEnd();
         match = getMatch();
     }
 
-    return tags;
+    return [title, tags];
 }
 
 export function getDetails(chunk: Chunk, line: number) {
