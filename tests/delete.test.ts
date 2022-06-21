@@ -20,8 +20,9 @@ describe("Delete Test", () => {
 
     it("Delete TODO", async () => {
         addFakeIssue({
+            type: 'exists',
             title: 'a totally different TODO in the next Line',
-            number: 2,
+            issueId: 2,
             open: true,
             assignees: []
         })

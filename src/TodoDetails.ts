@@ -97,7 +97,6 @@ export function getDetails(chunk: Chunk, line: number) {
 
     return {
         username,
-        number: prNr,
         range,
         assignees
     }

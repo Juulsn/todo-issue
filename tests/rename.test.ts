@@ -20,8 +20,9 @@ describe("Rename Test", () => {
 
     it("Huge Rename", async () => {
         addFakeIssue({
+            type: 'exists',
             title: 'TODO should we reinvent the gear here??',
-            number: 1,
+            issueId: 1,
             open: true,
             assignees: []
         })
@@ -30,9 +31,10 @@ describe("Rename Test", () => {
 
     it("Small Rename", async () => {
         addFakeIssue({
+            type: 'exists',
             title: 'TODO should we reinvent the gear here??',
-            number: 8,
-            state: "open",
+            issueId: 8,
+            open: true,
             assignees: []
         })
         await test("SmallRename", {updateTodo: 1})

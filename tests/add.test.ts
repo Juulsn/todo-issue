@@ -57,8 +57,9 @@ describe("Add Test", () => {
 
     it("Adds TODO with similar title as existing", async () => {
         addFakeIssue({
+            type: 'exists',
             title: 'should we reinvent the gear here??',
-            number: 2,
+            issueId: 2,
             open: true,
             assignees: []
         })
@@ -72,11 +73,11 @@ describe("Add Test", () => {
 
     it("Adds TODO with similar title as closed existing", async () => {
         addFakeIssue({
+            type: 'exists',
             title: 'should we reinvent the gear here??',
-            number: 2,
-            type: "exists",
+            issueId: 2,
             open: false,
-            assignees: [{login: 'DerJuulsn'}]
+            assignees: ['DerJuulsn']
         })
 
         taskSystem.addReferenceTodo.mockImplementationOnce((todo: Todo) => {

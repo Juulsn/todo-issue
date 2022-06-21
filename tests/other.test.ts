@@ -20,8 +20,9 @@ describe("Other TODO Change Tests", () => {
 
     it("Move TODO", async () => {
         addFakeIssue({
+            type: 'exists',
             title: 'TODO should we reinvent the gear here?? üäö',
-            number: 241,
+            issueId: 241,
             open: true,
             assignees: []
         })

@@ -6,29 +6,6 @@
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -41,11 +18,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const Todo_1 = __nccwpck_require__(9619);
 const github_1 = __nccwpck_require__(5438);
-const core = __importStar(__nccwpck_require__(2186));
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const TodoMatcher_1 = __nccwpck_require__(8794);
 const GithubTaskSystem_1 = __nccwpck_require__(1580);
 const TaskSystem_1 = __nccwpck_require__(2963);
+const core_1 = __nccwpck_require__(2186);
 exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
     checkEventTrigger();
     const taskSystem = getTaskSystem();
@@ -53,17 +30,17 @@ exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
         return;
     (0, TaskSystem_1.setTaskSystem)(taskSystem);
     if (!ArgumentContext_1.argumentContext.keywords.length) {
-        core.setFailed('No keywords were specified!');
+        (0, core_1.setFailed)('No keywords were specified!');
         return;
     }
     yield taskSystem.checkRateLimit(false);
-    console.debug('Search for TODOs...');
+    (0, core_1.debug)('Search for TODOs...');
     let todos = yield (0, Todo_1.generateTodosFromCommit)();
-    console.log(`${todos.length} TODOs found`);
+    (0, core_1.debug)(`${todos.length} TODOs found`);
     if (!todos.length)
         return;
     const existingTodos = yield (0, TaskSystem_1.currentTaskSystem)().getTodos();
-    console.log(`${existingTodos.length} TODOs imported`);
+    (0, core_1.debug)(`${existingTodos.length} TODOs imported`);
     todos = (0, TodoMatcher_1.cleanUpTodos)(todos, existingTodos);
     yield handleTodos(todos.filter(value => value.type == "add"), taskSystem.addTodo);
     if (ArgumentContext_1.argumentContext.importAll)
@@ -80,13 +57,13 @@ exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
 function checkEventTrigger() {
     if (ArgumentContext_1.argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
-            core.setFailed('importAll can only be used on trigger workflow_dispatch');
+            (0, core_1.setFailed)('importAll can only be used on trigger workflow_dispatch');
             return;
         }
-        console.log('Import all mode. Adding all TODOs from codebase which were not created yet');
+        (0, core_1.info)('Import all mode. Adding all TODOs from codebase which were not created yet');
     }
     else if (github_1.context.eventName !== 'push') {
-        core.setFailed('Action can only be used on trigger push or in manual and importAll mode');
+        (0, core_1.setFailed)('Action can only be used on trigger push or in manual and importAll mode');
         return;
     }
 }
@@ -96,7 +73,7 @@ function getTaskSystem() {
             (0, TaskSystem_1.setTaskSystem)(new GithubTaskSystem_1.GitHubTaskSystem());
             break;
         default:
-            core.setFailed(`${ArgumentContext_1.argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+            (0, core_1.setFailed)(`${ArgumentContext_1.argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
             return;
     }
     return (0, TaskSystem_1.currentTaskSystem)();
@@ -104,7 +81,7 @@ function getTaskSystem() {
 function handleTodos(todos, method) {
     return __awaiter(this, void 0, void 0, function* () {
         const context = (0, TaskSystem_1.currentTaskSystem)();
-        console.log(`Handle ${todos.length} issues, ${method.name}`);
+        (0, core_1.debug)(`Handle ${todos.length} issues, ${method.name}`);
         for (const value of todos) {
             try {
                 yield method(value);
@@ -116,8 +93,7 @@ function handleTodos(todos, method) {
                     yield method(value);
                     continue;
                 }
-                console.warn(e);
-                core.warning(e.message);
+                (0, core_1.error)(e);
             }
         }
     });
@@ -530,16 +506,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubTaskSystem = void 0;
 const Helpers_1 = __nccwpck_require__(3731);
 const templates_1 = __nccwpck_require__(1429);
 const rest_1 = __nccwpck_require__(5375);
 const RepoContext_1 = __nccwpck_require__(6705);
-const core_1 = __importDefault(__nccwpck_require__(2186));
+const core_1 = __nccwpck_require__(2186);
 const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
 class GitHubTaskSystem {
     constructor() {
@@ -562,22 +535,23 @@ class GitHubTaskSystem {
             let page = 0;
             let next = true;
             while (next) {
-                console.log(`Requesting issues... page ${page}`);
+                (0, core_1.debug)(`Requesting issues... page ${page}`);
                 const result = yield this.getIssuesInPage(page);
                 next = result.data.length === 100;
                 page++;
                 yield this.checkRateLimit();
                 result.data.forEach((each) => {
+                    var _a, _b;
                     if (each.pull_request)
                         return;
-                    console.debug(`Importing issue [#${each.number}]`);
+                    (0, core_1.debug)(`Importing issue [#${each.number}]`);
                     existingTodos.push({
                         type: "exists",
                         title: each.title,
                         //bodyComment: each.body,
                         issueId: each.number,
                         open: each.state === "open",
-                        assignees: each.assignees.map((assignee) => assignee.login)
+                        assignees: (_b = (_a = each.assignees) === null || _a === void 0 ? void 0 : _a.map((assignee) => assignee.login)) !== null && _b !== void 0 ? _b : []
                     });
                 });
             }
@@ -604,7 +578,7 @@ class GitHubTaskSystem {
                 this.rateLimit = rate.data.rate.remaining;
                 if (rate.data.rate.remaining == 0) {
                     const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
-                    core_1.default.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
+                    (0, core_1.debug)(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
                     yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
                 }
                 rate = yield octokit.rateLimit.get();
@@ -618,20 +592,20 @@ class GitHubTaskSystem {
     addTodo(todo) {
         return __awaiter(this, void 0, void 0, function* () {
             const body = (0, Helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-            core_1.default.info(`Creating issue with title [${todo.title}] because of a comment`);
+            (0, core_1.info)(`Creating issue with title [${todo.title}] because of a comment`);
             const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
             todo.issueId = val.data.number;
             yield this.checkRateLimit();
-            core_1.default.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
+            (0, core_1.debug)(`Issue [${todo.title}] got ID ${todo.issueId}`);
         });
     }
     updateTodo(todo) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!todo.issueId) {
-                core_1.default.error(`Can't update issue [${todo.title}]! No issueId found`);
+                (0, core_1.error)(`Can't update issue [${todo.title}]! No issueId found`);
                 return;
             }
-            core_1.default.debug(`Updating issue #${todo.issueId} because the title were changed`);
+            (0, core_1.info)(`Updating issue #${todo.issueId} because the title were changed`);
             yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
             yield this.checkRateLimit();
         });
@@ -639,11 +613,11 @@ class GitHubTaskSystem {
     closeTodo(todo) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!todo.issueId) {
-                core_1.default.error(`Can't close issue [${todo.title}]! No issueId found`);
+                (0, core_1.error)(`Can't close issue [${todo.title}]! No issueId found`);
                 return;
             }
             const body = (0, Helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-            core_1.default.debug(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
+            (0, core_1.info)(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
             yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
             yield this.checkRateLimit();
             yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
@@ -653,10 +627,10 @@ class GitHubTaskSystem {
     reopenTodo(todo) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!todo.issueId) {
-                core_1.default.error(`Can't reopen issue [${todo.title}]! No issueId found`);
+                (0, core_1.error)(`Can't reopen issue [${todo.title}]! No issueId found`);
                 return;
             }
-            core_1.default.info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
+            (0, core_1.info)(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
             yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
             yield this.checkRateLimit();
         });
@@ -677,10 +651,10 @@ class GitHubTaskSystem {
         return __awaiter(this, void 0, void 0, function* () {
             const body = (0, Helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
             if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
-                core_1.default.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
+                (0, core_1.error)(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
                 return;
             }
-            core_1.default.info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.title}] because it is similar to a the new issue [${todo.title}]`);
+            (0, core_1.info)(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.title}] because it is similar to a the new issue [${todo.title}]`);
             yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
             yield this.checkRateLimit();
             yield this.updateAssignees(todo.similarTodo);
@@ -835,7 +809,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDetails = exports.splitTagsFromTitle = exports.checkForBody = exports.getFileBoundaries = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
 const Helpers_1 = __nccwpck_require__(3731);
-const RepoContext_1 = __nccwpck_require__(6705);
 const GitHubContext_1 = __nccwpck_require__(422);
 /**
  * Get the file boundaries of the hunk
@@ -912,7 +885,6 @@ function getDetails(chunk, line) {
     }
     return {
         username,
-        number: RepoContext_1.prNr,
         range,
         assignees
     };

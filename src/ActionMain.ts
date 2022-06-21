@@ -1,10 +1,10 @@
 import {generateTodosFromCommit, Todo} from "./Todo";
 import {context as github} from "@actions/github";
-import * as core from "@actions/core";
 import {argumentContext} from "./ArgumentContext";
 import {cleanUpTodos} from "./TodoMatcher";
 import {GitHubTaskSystem} from "./TaskSystems/GithubTaskSystem";
 import {currentTaskSystem, setTaskSystem, ITaskSystem} from "./TaskSystem";
+import {debug, error, info, setFailed, warning} from "@actions/core";
 
 
 export default async () => {
@@ -19,22 +19,22 @@ export default async () => {
     setTaskSystem(taskSystem);
 
     if (!argumentContext.keywords.length) {
-        core.setFailed('No keywords were specified!')
+        setFailed('No keywords were specified!')
         return
     }
 
     await taskSystem.checkRateLimit(false);
 
-    console.debug('Search for TODOs...')
+    debug('Search for TODOs...')
 
     let todos: Todo[] = await generateTodosFromCommit();
 
-    console.log(`${todos.length} TODOs found`)
+    debug(`${todos.length} TODOs found`)
 
     if (!todos.length) return
 
     const existingTodos: Todo[] = await currentTaskSystem().getTodos();
-    console.log(`${existingTodos.length} TODOs imported`)
+    debug(`${existingTodos.length} TODOs imported`)
 
     todos = cleanUpTodos(todos, existingTodos);
 
@@ -57,12 +57,12 @@ export default async () => {
 function checkEventTrigger() {
     if (argumentContext.importAll) {
         if (github.eventName !== 'workflow_dispatch') {
-            core.setFailed('importAll can only be used on trigger workflow_dispatch')
+            setFailed('importAll can only be used on trigger workflow_dispatch')
             return
         }
-        console.log('Import all mode. Adding all TODOs from codebase which were not created yet')
+        info('Import all mode. Adding all TODOs from codebase which were not created yet')
     } else if (github.eventName !== 'push') {
-        core.setFailed('Action can only be used on trigger push or in manual and importAll mode')
+        setFailed('Action can only be used on trigger push or in manual and importAll mode')
         return
     }
 }
@@ -73,7 +73,7 @@ function getTaskSystem(): ITaskSystem | undefined {
             setTaskSystem(new GitHubTaskSystem());
             break
         default:
-            core.setFailed(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+            setFailed(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
             return
     }
 
@@ -83,7 +83,7 @@ function getTaskSystem(): ITaskSystem | undefined {
 async function handleTodos(todos: Todo[], method: (todo: Todo) => Promise<void>) {
     const context = currentTaskSystem();
 
-    console.log(`Handle ${todos.length} issues, ${method.name}`)
+    debug(`Handle ${todos.length} issues, ${method.name}`)
     for (const value of todos) {
         try {
             await method(value);
@@ -96,8 +96,7 @@ async function handleTodos(todos: Todo[], method: (todo: Todo) => Promise<void>)
                 continue
             }
 
-            console.warn(e);
-            core.warning((e as Error).message);
+            error(e as Error);
         }
     }
 }

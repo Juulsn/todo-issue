@@ -3,9 +3,9 @@ import {lineBreak} from "../Helpers";
 import {template} from "../templates";
 import {Octokit} from "@octokit/rest";
 import {repoObject} from "../RepoContext";
-import * as core from "@actions/core";
 import {Label} from "../LabelHelper";
 import {ITaskSystem} from "../TaskSystem";
+import {debug, error, info} from "@actions/core";
 
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
@@ -25,7 +25,7 @@ export class GitHubTaskSystem implements ITaskSystem {
         })
     }
 
-    async getTodos(){
+    async getTodos() {
         const existingTodos: Todo[] = [];
 
         let page = 0;
@@ -33,7 +33,7 @@ export class GitHubTaskSystem implements ITaskSystem {
 
         while (next) {
 
-            console.log(`Requesting issues... page ${page}`)
+            debug(`Requesting issues... page ${page}`)
 
             const result = await this.getIssuesInPage(page)
 
@@ -42,12 +42,12 @@ export class GitHubTaskSystem implements ITaskSystem {
 
             await this.checkRateLimit()
 
-            result.data.forEach((each: any) => {
+            result.data.forEach((each) => {
 
                 if (each.pull_request)
                     return
 
-                console.debug(`Importing issue [#${each.number}]`)
+                debug(`Importing issue [#${each.number}]`)
 
                 existingTodos.push(
                     {
@@ -56,7 +56,7 @@ export class GitHubTaskSystem implements ITaskSystem {
                         //bodyComment: each.body,
                         issueId: each.number,
                         open: each.state === "open",
-                        assignees: each.assignees.map((assignee: any) => assignee.login)
+                        assignees: each.assignees?.map((assignee: any) => assignee.login) ?? []
                     } as Todo)
             })
         }
@@ -65,6 +65,7 @@ export class GitHubTaskSystem implements ITaskSystem {
     }
 
     existingLabels: string[] = [];
+
     async ensureLabelExists(label: Label): Promise<void> {
 
         if (this.existingLabels.includes(label.name))
@@ -80,7 +81,8 @@ export class GitHubTaskSystem implements ITaskSystem {
     }
 
     rateLimit = 0;
-    async checkRateLimit(decrease = true) : Promise<void> {
+
+    async checkRateLimit(decrease = true): Promise<void> {
 
         if (this.rateLimit == 0) {
 
@@ -89,7 +91,7 @@ export class GitHubTaskSystem implements ITaskSystem {
 
             if (rate.data.rate.remaining == 0) {
                 const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
-                core.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`)
+                debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`)
                 await new Promise(resolve => setTimeout(resolve, timeToWaitInMillis))
             }
 
@@ -113,7 +115,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             })
         )
 
-        core.info(`Creating issue with title [${todo.title}] because of a comment`)
+        info(`Creating issue with title [${todo.title}] because of a comment`)
 
         const val = await octokit.issues.create({
             ...repoObject,
@@ -127,17 +129,17 @@ export class GitHubTaskSystem implements ITaskSystem {
 
         await this.checkRateLimit();
 
-        core.debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
+        debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
     }
 
     async updateTodo(todo: Todo): Promise<void> {
 
         if (!todo.issueId) {
-            core.error(`Can't update issue [${todo.title}]! No issueId found`)
+            error(`Can't update issue [${todo.title}]! No issueId found`)
             return
         }
 
-        core.debug(`Updating issue #${todo.issueId} because the title were changed`)
+        info(`Updating issue #${todo.issueId} because the title were changed`)
 
         await octokit.issues.update({
             ...repoObject,
@@ -152,7 +154,7 @@ export class GitHubTaskSystem implements ITaskSystem {
     async closeTodo(todo: Todo): Promise<void> {
 
         if (!todo.issueId) {
-            core.error(`Can't close issue [${todo.title}]! No issueId found`)
+            error(`Can't close issue [${todo.title}]! No issueId found`)
             return
         }
 
@@ -164,7 +166,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             })
         )
 
-        core.debug(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`)
+        info(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`)
 
         await octokit.issues.createComment({
             ...repoObject,
@@ -186,11 +188,11 @@ export class GitHubTaskSystem implements ITaskSystem {
     async reopenTodo(todo: Todo): Promise<void> {
 
         if (!todo.issueId) {
-            core.error(`Can't reopen issue [${todo.title}]! No issueId found`)
+            error(`Can't reopen issue [${todo.title}]! No issueId found`)
             return
         }
 
-        core.info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`)
+        info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`)
 
         await octokit.issues.update({
             ...repoObject,
@@ -226,11 +228,11 @@ export class GitHubTaskSystem implements ITaskSystem {
         )
 
         if (!todo.similarTodo?.issueId) {
-            core.error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo?.title}]. No issueId found`)
+            error(`Can't add reference for [${todo.title}] to issue [${todo.similarTodo?.title}]. No issueId found`)
             return
         }
 
-        core.info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${todo.similarTodo?.title}] because it is similar to a the new issue [${todo.title}]`)
+        info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${todo.similarTodo?.title}] because it is similar to a the new issue [${todo.title}]`)
 
         await octokit.issues.createComment({
             ...repoObject,
