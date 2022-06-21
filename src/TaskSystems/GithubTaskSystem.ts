@@ -3,7 +3,7 @@ import {lineBreak} from "../Helpers";
 import {template} from "../templates";
 import {Octokit} from "@octokit/rest";
 import {repoObject} from "../RepoContext";
-import core from "@actions/core";
+import * as core from "@actions/core";
 import {Label} from "../LabelHelper";
 import {ITaskSystem} from "../TaskSystem";
 
