@@ -9,7 +9,7 @@ export const setTaskSystem = (taskSystem: ITaskSystem) => {
 export const currentTaskSystem = () => current;
 
 export interface ITaskSystem {
-    checkRateLimit: (decrease: boolean) => Promise<void>
+    checkRateLimit: (decrease?: boolean) => Promise<void>
     getTodos: () => Promise<Todo[]>
     ensureLabelExists: (label: Label) => Promise<void>
     addTodo: (todo: Todo) => Promise<void>

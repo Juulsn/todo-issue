@@ -91,7 +91,6 @@ function handleTodos(todos, method) {
                     //wait and retry
                     yield context.checkRateLimit(false);
                     yield method(value);
-                    continue;
                 }
                 (0, core_1.error)(e);
             }
@@ -99,7 +98,7 @@ function handleTodos(todos, method) {
     });
 }
 function isRateLimitError(e) {
-    return e.message.includes("rate limit");
+    return (e).message.includes("rate limit");
 }
 
 

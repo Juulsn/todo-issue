@@ -13,7 +13,7 @@ export default async () => {
 
     const taskSystem = getTaskSystem();
 
-    if(!taskSystem)
+    if (!taskSystem)
         return;
 
     setTaskSystem(taskSystem);
@@ -89,11 +89,10 @@ async function handleTodos(todos: Todo[], method: (todo: Todo) => Promise<void>)
             await method(value);
         } catch (e) {
 
-            if(isRateLimitError(e)){
+            if (isRateLimitError(e as Error)) {
                 //wait and retry
                 await context.checkRateLimit(false);
                 await method(value);
-                continue
             }
 
             error(e as Error);
@@ -101,6 +100,6 @@ async function handleTodos(todos: Todo[], method: (todo: Todo) => Promise<void>)
     }
 }
 
-function isRateLimitError(e: any){
-    return (e as Error).message.includes("rate limit");
+function isRateLimitError(e: Error) {
+    return (e).message.includes("rate limit");
 }

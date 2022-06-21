@@ -13,7 +13,7 @@ export function addFakeIssue(todo: any) {
 }
 
 export class MockedTaskSystem implements ITaskSystem {
-    checkRateLimit: (decrease: boolean) => Promise<void> = jest.fn();
+    checkRateLimit: (decrease?: boolean) => Promise<void> = jest.fn();
     getTodos: () => Promise<Todo[]> = jest.fn().mockImplementation(() => existingIssues);
     ensureLabelExists: (label: Label) => Promise<void> = jest.fn();
     addTodo: (todo: Todo) => Promise<void> = jest.fn();
