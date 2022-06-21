@@ -40,15 +40,44 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const Todo_1 = __nccwpck_require__(9619);
-const TodoHandler_1 = __nccwpck_require__(3842);
 const github_1 = __nccwpck_require__(5438);
 const core = __importStar(__nccwpck_require__(2186));
 const ArgumentContext_1 = __nccwpck_require__(3441);
-const GitHubContext_1 = __nccwpck_require__(422);
 const TodoMatcher_1 = __nccwpck_require__(8794);
+const GithubTaskSystem_1 = __nccwpck_require__(1580);
+const TaskSystem_1 = __nccwpck_require__(2963);
 exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    yield (0, TodoHandler_1.checkRateLimit)(false);
+    checkEventTrigger();
+    const taskSystem = getTaskSystem();
+    if (!taskSystem)
+        return;
+    (0, TaskSystem_1.setTaskSystem)(taskSystem);
+    if (!ArgumentContext_1.argumentContext.keywords.length) {
+        core.setFailed('No keywords were specified!');
+        return;
+    }
+    yield taskSystem.checkRateLimit(false);
+    console.debug('Search for TODOs...');
+    let todos = yield (0, Todo_1.generateTodosFromCommit)();
+    console.log(`${todos.length} TODOs found`);
+    if (!todos.length)
+        return;
+    const existingTodos = yield (0, TaskSystem_1.currentTaskSystem)().getTodos();
+    console.log(`${existingTodos.length} TODOs imported`);
+    todos = (0, TodoMatcher_1.cleanUpTodos)(todos, existingTodos);
+    yield handleTodos(todos.filter(value => value.type == "add"), taskSystem.addTodo);
+    if (ArgumentContext_1.argumentContext.importAll)
+        return;
+    yield handleTodos(todos.filter(value => value.type == "del"), taskSystem.closeTodo);
+    yield handleTodos(todos.filter(value => value.type == "update"), taskSystem.updateTodo);
+    if (!ArgumentContext_1.argumentContext.reopenClosed)
+        return;
+    const toAddReference = todos.filter(value => value.type == "addReference");
+    const toReopenIssues = [...new Map(toAddReference.filter(value => { var _a; return ((_a = value.similarTodo) === null || _a === void 0 ? void 0 : _a.type) === "exists" && value.similarTodo.open === false && value.similarTodo.issueId !== false; }).map(item => [item.issueId, item])).values()];
+    yield handleTodos(toReopenIssues, taskSystem.reopenTodo);
+    yield handleTodos(toAddReference, taskSystem.addReferenceTodo);
+});
+function checkEventTrigger() {
     if (ArgumentContext_1.argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
             core.setFailed('importAll can only be used on trigger workflow_dispatch');
@@ -60,137 +89,39 @@ exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
         core.setFailed('Action can only be used on trigger push or in manual and importAll mode');
         return;
     }
-    if (ArgumentContext_1.argumentContext.taskSystem !== "GitHub") {
-        core.setFailed(`${ArgumentContext_1.argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
-        return;
+}
+function getTaskSystem() {
+    switch (ArgumentContext_1.argumentContext.taskSystem) {
+        case "GitHub":
+            (0, TaskSystem_1.setTaskSystem)(new GithubTaskSystem_1.GitHubTaskSystem());
+            break;
+        default:
+            core.setFailed(`${ArgumentContext_1.argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
+            return;
     }
-    if (!ArgumentContext_1.argumentContext.keywords.length) {
-        core.setFailed('No keywords were specified!');
-        return;
-    }
-    console.debug('Search for TODOs...');
-    let todos = yield (0, Todo_1.generateTodosFromCommit)();
-    console.log(`${todos.length} TODOs found`);
-    if (!todos.length)
-        return;
-    const existingTodos = [];
-    let page = 0;
-    let next = true;
-    while (next) {
-        console.log(`Requesting issues... page ${page}`);
-        const result = yield (0, GitHubContext_1.getIssues)(page);
-        next = result.data.length === 100;
-        page++;
-        yield (0, TodoHandler_1.checkRateLimit)();
-        result.data.forEach((each) => {
-            if (each.pull_request)
-                return;
-            console.debug(`Importing issue [#${each.number}]`);
-            existingTodos.push({
-                type: "exists",
-                title: each.title,
-                //bodyComment: each.body,
-                issueId: each.number,
-                open: each.state === "open",
-                assignees: each.assignees.map((assignee) => assignee.login)
-            });
-        });
-    }
-    console.log(`${existingTodos.length} TODOs imported`);
-    todos = (0, TodoMatcher_1.cleanUpTodos)(todos, existingTodos);
-    const toAdd = todos.filter(value => value.type == "add");
-    console.log(`Adding ${toAdd.length} issues`);
-    yield (0, TodoHandler_1.checkRateLimit)(false);
-    for (const value of toAdd) {
-        try {
-            yield (0, TodoHandler_1.addTodo)(value);
-        }
-        catch (e) {
-            if (isRateLimitError(e)) {
-                //wait and retry
-                yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield (0, TodoHandler_1.addTodo)(value);
-                continue;
-            }
-            console.warn(e);
-            core.warning(e.message);
-        }
-    }
-    if (ArgumentContext_1.argumentContext.importAll)
-        return;
-    const toClose = todos.filter(value => value.type == "del");
-    console.log(`Closing ${toClose.length} issues`);
-    for (const value of toClose) {
-        try {
-            yield (0, TodoHandler_1.closeTodo)(value);
-        }
-        catch (e) {
-            if (isRateLimitError(e)) {
-                //wait and retry
-                yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield (0, TodoHandler_1.closeTodo)(value);
-                continue;
-            }
-            console.warn(e);
-            core.warning(e.message);
-        }
-    }
-    const toUpdate = todos.filter(value => value.type == "update");
-    console.log(`Updating ${toUpdate.length} issues`);
-    for (const value of toUpdate) {
-        try {
-            yield (0, TodoHandler_1.updateTodo)(value);
-        }
-        catch (e) {
-            if (isRateLimitError(e)) {
-                //wait and retry
-                yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield (0, TodoHandler_1.updateTodo)(value);
-                continue;
-            }
-            console.warn(e);
-            core.warning(e.message);
-        }
-    }
-    if (!ArgumentContext_1.argumentContext.reopenClosed)
-        return;
-    const toAddReference = todos.filter(value => value.type == "addReference");
-    console.log(`Adding reference for ${toAddReference.length} issues`);
-    for (const value of toAddReference) {
-        // check if it has been already reopened
-        if (((_a = value.similarTodo) === null || _a === void 0 ? void 0 : _a.type) === "exists" && value.similarTodo.open === false) {
+    return (0, TaskSystem_1.currentTaskSystem)();
+}
+function handleTodos(todos, method) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = (0, TaskSystem_1.currentTaskSystem)();
+        console.log(`Handle ${todos.length} issues, ${method.name}`);
+        for (const value of todos) {
             try {
-                yield (0, TodoHandler_1.reopenTodo)(value.similarTodo);
+                yield method(value);
             }
             catch (e) {
                 if (isRateLimitError(e)) {
                     //wait and retry
-                    yield (0, TodoHandler_1.checkRateLimit)(false);
-                    yield (0, TodoHandler_1.reopenTodo)(value);
+                    yield context.checkRateLimit(false);
+                    yield method(value);
                     continue;
                 }
                 console.warn(e);
                 core.warning(e.message);
             }
-            value.similarTodo.open = true;
         }
-    }
-    for (const value of toAddReference) {
-        try {
-            yield (0, TodoHandler_1.addReferenceTodo)(value);
-        }
-        catch (e) {
-            if (isRateLimitError(e)) {
-                //wait and retry
-                yield (0, TodoHandler_1.checkRateLimit)(false);
-                yield (0, TodoHandler_1.addReferenceTodo)(value);
-                continue;
-            }
-            console.warn(e);
-            core.warning(e.message);
-        }
-    }
-});
+    });
+}
 function isRateLimitError(e) {
     return e.message.includes("rate limit");
 }
@@ -299,13 +230,13 @@ exports.argumentContext = {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getMentionedAssignees = exports.generateAssignedTo = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
-const helpers_1 = __nccwpck_require__(5008);
+const Helpers_1 = __nccwpck_require__(3731);
 const RepoContext_1 = __nccwpck_require__(6705);
 function generateAssignedTo(author, assignees) {
     const autoAssign = ArgumentContext_1.argumentContext.autoAssign;
     if (!assignees.length)
         return '';
-    const assigner = (0, helpers_1.reduceToList)(assignees.map(user => (0, helpers_1.addAt)(user)));
+    const assigner = (0, Helpers_1.reduceToList)(assignees.map(user => (0, Helpers_1.addAt)(user)));
     if (Array.isArray(autoAssign) ? autoAssign.sort().toString() === assignees.sort().toString() : false)
         return RepoContext_1.prNr ? ` cc ${assigner}` : ` It's been automagically assigned to ${assigner}.`;
     if (autoAssign === true && [author].toString() === assignees.toString())
@@ -315,8 +246,8 @@ function generateAssignedTo(author, assignees) {
 exports.generateAssignedTo = generateAssignedTo;
 function getMentionedAssignees(content, clipMentionedFromContent) {
     var _a, _b;
-    const regex = new RegExp(`@[a-zA-Z0-9@._-]+\\b`);
-    const assignees = (_b = (_a = content.match(regex)) === null || _a === void 0 ? void 0 : _a.map(value => (0, helpers_1.stripAt)(value))) !== null && _b !== void 0 ? _b : [];
+    const regex = new RegExp(`@[a-zA-Z\d@._-]+\\b`);
+    const assignees = (_b = (_a = content.match(regex)) === null || _a === void 0 ? void 0 : _a.map(value => (0, Helpers_1.stripAt)(value))) !== null && _b !== void 0 ? _b : [];
     if (clipMentionedFromContent)
         content = content.replace(regex, "").trim();
     return [content, assignees];
@@ -385,22 +316,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getUsername = exports.ensureLabelExists = exports.getDiffFile = exports.getIssues = exports.octokit = void 0;
+exports.getUsername = exports.getDiffFile = exports.octokit = void 0;
 const rest_1 = __nccwpck_require__(5375);
 const github_1 = __nccwpck_require__(5438);
 const RepoContext_1 = __nccwpck_require__(6705);
 exports.octokit = new rest_1.Octokit({ auth: (_a = process.env.PRIVAT_READ_TOKEN) !== null && _a !== void 0 ? _a : process.env.GITHUB_TOKEN });
-/**
- *
- * @param page
- * @returns Up to 100 issues at a time
- */
-function getIssues(page) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return exports.octokit.issues.listForRepo(Object.assign(Object.assign({}, RepoContext_1.repoObject), { per_page: 100, state: "all", page }));
-    });
-}
-exports.getIssues = getIssues;
 /**
  * @returns raw diff data
  */
@@ -422,26 +342,82 @@ function getDiffFile() {
     });
 }
 exports.getDiffFile = getDiffFile;
-const existingLabels = [];
-function ensureLabelExists(label) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (existingLabels.includes(label.name))
-            return;
-        try {
-            yield exports.octokit.issues.createLabel(label);
-        }
-        catch (_a) {
-            // Label already exists, ignore
-        }
-        existingLabels.push(label.name);
-    });
-}
-exports.ensureLabelExists = ensureLabelExists;
 function getUsername() {
     var _a, _b;
     return (_b = (_a = github_1.context.payload.head_commit) === null || _a === void 0 ? void 0 : _a.author) === null || _b === void 0 ? void 0 : _b.username;
 }
 exports.getUsername = getUsername;
+
+
+/***/ }),
+
+/***/ 3731:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkSimilarity = exports.escapeForRegExp = exports.lineBreak = exports.assignFlow = exports.stripAt = exports.addAt = exports.reduceToList = void 0;
+const ArgumentContext_1 = __nccwpck_require__(3441);
+const levenshtein = __nccwpck_require__(7468);
+function reduceToList(array) {
+    if (array.length == 1)
+        return array[0];
+    return array.reduce((prev, value, i) => {
+        if (i + 1 === array.length) {
+            return prev + ` and ${value}`;
+        }
+        else if (i === 0) {
+            return prev + `${value}`;
+        }
+        else {
+            return prev + `, ${value}`;
+        }
+    }, '');
+}
+exports.reduceToList = reduceToList;
+function addAt(str) {
+    if (!str.startsWith('@'))
+        return `@${str}`;
+    return str;
+}
+exports.addAt = addAt;
+function stripAt(str) {
+    if (str.startsWith('@'))
+        return str.split('@')[1];
+    return str;
+}
+exports.stripAt = stripAt;
+function assignFlow(author) {
+    if (ArgumentContext_1.argumentContext.autoAssign === true) {
+        if (author)
+            return [author];
+        return [];
+    }
+    else if (ArgumentContext_1.argumentContext.autoAssign) {
+        return ArgumentContext_1.argumentContext.autoAssign.map((n) => stripAt(n));
+    }
+    return [];
+}
+exports.assignFlow = assignFlow;
+function lineBreak(body) {
+    const regEx = /\/?&lt;br(?:\s\/)?&gt;/g; // Regular expression to match all occurences of '&lt;br&gt'
+    return body.replace(regEx, '<br>');
+}
+exports.lineBreak = lineBreak;
+function escapeForRegExp(input) {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+exports.escapeForRegExp = escapeForRegExp;
+function checkSimilarity(title0, title1) {
+    // TODO Extend config for issue merge?
+    // wenn das to_do einen sehr ähnlichen Titel hat, aber evtl nicht in der selben Datei steht
+    // kann er entweder zusammen gefasst werden (wenn der Titel länger als z.B. 15 zeichen ist?)
+    // oder der Titel kürzer ist und somit nicht aussagekräftig genug ist um es in dasselbe Issue zu stecken
+    // -> fürs erste gehen wir mal davon aus so oft wie möglich zu mergen
+    return (ArgumentContext_1.argumentContext.titleSimilarity && levenshtein(title0, title1) <= ((title0.length + title1.length) / 2) * (1 - ArgumentContext_1.argumentContext.titleSimilarity / 100));
+}
+exports.checkSimilarity = checkSimilarity;
 
 
 /***/ }),
@@ -462,11 +438,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getLabels = exports.defaultLabelCache = void 0;
-const dotenv_1 = __nccwpck_require__(2437);
-(0, dotenv_1.config)();
 const RepoContext_1 = __nccwpck_require__(6705);
 const ArgumentContext_1 = __nccwpck_require__(3441);
-const GitHubContext_1 = __nccwpck_require__(422);
+const TaskSystem_1 = __nccwpck_require__(2963);
 function createLabel(name, color = undefined) {
     return Object.assign(Object.assign({}, RepoContext_1.repoObject), { name,
         color, request: { retries: 0 } });
@@ -479,11 +453,11 @@ function getDefaultLabels() {
             return exports.defaultLabelCache = [];
         if (ArgumentContext_1.argumentContext.label === true) {
             const defaultLabel = createLabel('todo :spiral_notepad:', '00B0D8');
-            yield (0, GitHubContext_1.ensureLabelExists)(defaultLabel);
+            yield (0, TaskSystem_1.currentTaskSystem)().ensureLabelExists(defaultLabel);
             return exports.defaultLabelCache = [defaultLabel.name];
         }
         for (let labelName of ArgumentContext_1.argumentContext.label)
-            yield (0, GitHubContext_1.ensureLabelExists)(createLabel(labelName));
+            yield (0, TaskSystem_1.currentTaskSystem)().ensureLabelExists(createLabel(labelName));
         return exports.defaultLabelCache = ArgumentContext_1.argumentContext.label;
     });
 }
@@ -492,7 +466,7 @@ function getLabels(tags) {
         if (!tags || tags.length === 0)
             return getDefaultLabels();
         for (const value of tags)
-            yield (0, GitHubContext_1.ensureLabelExists)(createLabel(value));
+            yield (0, TaskSystem_1.currentTaskSystem)().ensureLabelExists(createLabel(value));
         return tags;
     });
 }
@@ -519,6 +493,201 @@ exports.repoObject = { owner: exports.owner, repo: exports.repo };
 exports.prNr = (_c = (_b = (_a = github_1.default === null || github_1.default === void 0 ? void 0 : github_1.default.context) === null || _a === void 0 ? void 0 : _a.issue) === null || _b === void 0 ? void 0 : _b.number) !== null && _c !== void 0 ? _c : false;
 //export const default_ref = process.env.GITHUB_BASE_REF;
 //export const current_ref = process.env.GITHUB_REF;
+
+
+/***/ }),
+
+/***/ 2963:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.currentTaskSystem = exports.setTaskSystem = void 0;
+let current;
+const setTaskSystem = (taskSystem) => {
+    if (!current)
+        current = taskSystem;
+};
+exports.setTaskSystem = setTaskSystem;
+const currentTaskSystem = () => current;
+exports.currentTaskSystem = currentTaskSystem;
+
+
+/***/ }),
+
+/***/ 1580:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GitHubTaskSystem = void 0;
+const Helpers_1 = __nccwpck_require__(3731);
+const templates_1 = __nccwpck_require__(1429);
+const rest_1 = __nccwpck_require__(5375);
+const RepoContext_1 = __nccwpck_require__(6705);
+const core_1 = __importDefault(__nccwpck_require__(2186));
+const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
+class GitHubTaskSystem {
+    constructor() {
+        this.existingLabels = [];
+        this.rateLimit = 0;
+    }
+    /**
+     *
+     * @param page
+     * @returns Up to 100 issues at a time
+     */
+    getIssuesInPage(page) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return octokit.issues.listForRepo(Object.assign(Object.assign({}, RepoContext_1.repoObject), { per_page: 100, state: "all", page }));
+        });
+    }
+    getTodos() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const existingTodos = [];
+            let page = 0;
+            let next = true;
+            while (next) {
+                console.log(`Requesting issues... page ${page}`);
+                const result = yield this.getIssuesInPage(page);
+                next = result.data.length === 100;
+                page++;
+                yield this.checkRateLimit();
+                result.data.forEach((each) => {
+                    if (each.pull_request)
+                        return;
+                    console.debug(`Importing issue [#${each.number}]`);
+                    existingTodos.push({
+                        type: "exists",
+                        title: each.title,
+                        //bodyComment: each.body,
+                        issueId: each.number,
+                        open: each.state === "open",
+                        assignees: each.assignees.map((assignee) => assignee.login)
+                    });
+                });
+            }
+            return existingTodos;
+        });
+    }
+    ensureLabelExists(label) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.existingLabels.includes(label.name))
+                return;
+            try {
+                yield octokit.issues.createLabel(label);
+            }
+            catch (_a) {
+                // Label already exists, ignore
+            }
+            this.existingLabels.push(label.name);
+        });
+    }
+    checkRateLimit(decrease = true) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.rateLimit == 0) {
+                let rate = yield octokit.rateLimit.get();
+                this.rateLimit = rate.data.rate.remaining;
+                if (rate.data.rate.remaining == 0) {
+                    const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
+                    core_1.default.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
+                    yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
+                }
+                rate = yield octokit.rateLimit.get();
+                this.rateLimit = rate.data.rate.remaining;
+            }
+            if (decrease)
+                this.rateLimit--;
+            return;
+        });
+    }
+    addTodo(todo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const body = (0, Helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
+            core_1.default.info(`Creating issue with title [${todo.title}] because of a comment`);
+            const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
+            todo.issueId = val.data.number;
+            yield this.checkRateLimit();
+            core_1.default.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
+        });
+    }
+    updateTodo(todo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!todo.issueId) {
+                core_1.default.error(`Can't update issue [${todo.title}]! No issueId found`);
+                return;
+            }
+            core_1.default.debug(`Updating issue #${todo.issueId} because the title were changed`);
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
+            yield this.checkRateLimit();
+        });
+    }
+    closeTodo(todo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!todo.issueId) {
+                core_1.default.error(`Can't close issue [${todo.title}]! No issueId found`);
+                return;
+            }
+            const body = (0, Helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
+            core_1.default.debug(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
+            yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
+            yield this.checkRateLimit();
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
+            yield this.checkRateLimit();
+        });
+    }
+    reopenTodo(todo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!todo.issueId) {
+                core_1.default.error(`Can't reopen issue [${todo.title}]! No issueId found`);
+                return;
+            }
+            core_1.default.info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
+            yield this.checkRateLimit();
+        });
+    }
+    updateAssignees(todo) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!((_a = todo.assignees) === null || _a === void 0 ? void 0 : _a.length))
+                return;
+            if (!todo.issueId)
+                return;
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
+            yield this.checkRateLimit();
+        });
+    }
+    addReferenceTodo(todo) {
+        var _a, _b, _c;
+        return __awaiter(this, void 0, void 0, function* () {
+            const body = (0, Helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
+            if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
+                core_1.default.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
+                return;
+            }
+            core_1.default.info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.title}] because it is similar to a the new issue [${todo.title}]`);
+            yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
+            yield this.checkRateLimit();
+            yield this.updateAssignees(todo.similarTodo);
+        });
+    }
+}
+exports.GitHubTaskSystem = GitHubTaskSystem;
 
 
 /***/ }),
@@ -665,7 +834,7 @@ exports.generateTodosFromCommit = generateTodosFromCommit;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDetails = exports.splitTagsFromTitle = exports.checkForBody = exports.getFileBoundaries = void 0;
 const ArgumentContext_1 = __nccwpck_require__(3441);
-const helpers_1 = __nccwpck_require__(5008);
+const Helpers_1 = __nccwpck_require__(3731);
 const RepoContext_1 = __nccwpck_require__(6705);
 const GitHubContext_1 = __nccwpck_require__(422);
 /**
@@ -695,7 +864,7 @@ function checkForBody(changes, changeIndex, beforeTag) {
     var _a;
     const bodyPieces = [];
     const nextChanges = changes.slice(changeIndex + 1);
-    const BODY_REG = new RegExp(`${(0, helpers_1.escapeForRegExp)(beforeTag)}\\W*(?<keyword>${ArgumentContext_1.argumentContext.bodyKeywords.join('|')})\\b\\W*(?<body>.*)`, !ArgumentContext_1.argumentContext.caseSensitive ? 'i' : '');
+    const BODY_REG = new RegExp(`${(0, Helpers_1.escapeForRegExp)(beforeTag)}\\W*(?<keyword>${ArgumentContext_1.argumentContext.bodyKeywords.join('|')})\\b\\W*(?<body>.*)`, !ArgumentContext_1.argumentContext.caseSensitive ? 'i' : '');
     for (const change of nextChanges) {
         const matches = BODY_REG.exec(change.content);
         if (!matches)
@@ -706,7 +875,7 @@ function checkForBody(changes, changeIndex, beforeTag) {
         else {
             if (bodyPieces.length > 0 && bodyPieces[bodyPieces.length - 1] !== '\n')
                 bodyPieces.push(' ');
-            bodyPieces.push((0, helpers_1.lineBreak)(matches.groups.body).trim());
+            bodyPieces.push((0, Helpers_1.lineBreak)(matches.groups.body).trim());
         }
     }
     return bodyPieces.length ? bodyPieces.join('') : false;
@@ -731,7 +900,7 @@ function splitTagsFromTitle(title) {
 exports.splitTagsFromTitle = splitTagsFromTitle;
 function getDetails(chunk, line) {
     const username = (0, GitHubContext_1.getUsername)();
-    const assignees = (0, helpers_1.assignFlow)(username);
+    const assignees = (0, Helpers_1.assignFlow)(username);
     let range;
     if (!ArgumentContext_1.argumentContext.blobLines) {
         // Don't show the blob
@@ -753,136 +922,6 @@ exports.getDetails = getDetails;
 
 /***/ }),
 
-/***/ 3842:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addReferenceTodo = exports.reopenTodo = exports.closeTodo = exports.updateTodo = exports.addTodo = exports.checkRateLimit = void 0;
-const helpers_1 = __nccwpck_require__(5008);
-const templates_1 = __nccwpck_require__(1429);
-const rest_1 = __nccwpck_require__(5375);
-const RepoContext_1 = __nccwpck_require__(6705);
-const core_1 = __importDefault(__nccwpck_require__(2186));
-const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
-let rateLimit = 0;
-function checkRateLimit(decrease = true) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (rateLimit == 0) {
-            let rate = yield octokit.rateLimit.get();
-            rateLimit = rate.data.rate.remaining;
-            if (rate.data.rate.remaining == 0) {
-                const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
-                core_1.default.debug(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
-                yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
-            }
-            rate = yield octokit.rateLimit.get();
-            rateLimit = rate.data.rate.remaining;
-        }
-        if (decrease)
-            rateLimit--;
-        return;
-    });
-}
-exports.checkRateLimit = checkRateLimit;
-function addTodo(todo) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const body = (0, helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-        core_1.default.info(`Creating issue with title [${todo.title}] because of a comment`);
-        const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
-        todo.issueId = val.data.number;
-        yield checkRateLimit();
-        core_1.default.debug(`Issue [${todo.title}] got ID ${todo.issueId}`);
-    });
-}
-exports.addTodo = addTodo;
-function updateTodo(todo) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!todo.issueId) {
-            core_1.default.error(`Can't update issue [${todo.title}]! No issueId found`);
-            return;
-        }
-        core_1.default.debug(`Updating issue #${todo.issueId} because the title were changed`);
-        let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
-        yield checkRateLimit();
-        return val;
-    });
-}
-exports.updateTodo = updateTodo;
-function closeTodo(todo) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!todo.issueId) {
-            core_1.default.error(`Can't close issue [${todo.title}]! No issueId found`);
-            return;
-        }
-        const body = (0, helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-        core_1.default.debug(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
-        yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
-        yield checkRateLimit();
-        let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
-        yield checkRateLimit();
-        return val;
-    });
-}
-exports.closeTodo = closeTodo;
-function reopenTodo(todo) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!todo.issueId) {
-            core_1.default.error(`Can't reopen issue [${todo.title}]! No issueId found`);
-            return;
-        }
-        core_1.default.info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
-        let val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
-        yield checkRateLimit();
-        return val;
-    });
-}
-exports.reopenTodo = reopenTodo;
-function updateAssignees(todo) {
-    var _a;
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!((_a = todo.assignees) === null || _a === void 0 ? void 0 : _a.length))
-            return;
-        if (!todo.issueId)
-            return;
-        const val = yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
-        yield checkRateLimit();
-        return val;
-    });
-}
-function addReferenceTodo(todo) {
-    var _a, _b, _c;
-    return __awaiter(this, void 0, void 0, function* () {
-        const body = (0, helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-        if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
-            core_1.default.error(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
-            return;
-        }
-        core_1.default.info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.title}] because it is similar to a the new issue [${todo.title}]`);
-        const comment = yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
-        yield checkRateLimit();
-        yield updateAssignees(todo.similarTodo);
-        return comment;
-    });
-}
-exports.addReferenceTodo = addReferenceTodo;
-
-
-/***/ }),
-
 /***/ 8794:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -890,7 +929,7 @@ exports.addReferenceTodo = addReferenceTodo;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.cleanUpTodos = void 0;
-const helpers_1 = __nccwpck_require__(5008);
+const Helpers_1 = __nccwpck_require__(3731);
 function cleanUpTodos(found, existing) {
     // Set IssueID for existing found Todos
     found.forEach(foundTodo => {
@@ -914,7 +953,7 @@ function cleanUpTodos(found, existing) {
                 return;
             }
             // zwei verschiedene todos
-            if (!(0, helpers_1.checkSimilarity)(todo0.title, todo1.title))
+            if (!(0, Helpers_1.checkSimilarity)(todo0.title, todo1.title))
                 return;
             // hier gehen wir davon aus, dass ein typo gefixt wurde. → todo1 auf "update" setzen
             todo1.type = "update";
@@ -948,7 +987,7 @@ function cleanUpTodos(found, existing) {
         groupList.push([foundTodo0]);
         groupList.forEach(group => {
             group.forEach(foundTodo1 => {
-                if (!group.includes(foundTodo0) && (0, helpers_1.checkSimilarity)(foundTodo0.title, foundTodo1.title)) {
+                if (!group.includes(foundTodo0) && (0, Helpers_1.checkSimilarity)(foundTodo0.title, foundTodo1.title)) {
                     group.push(foundTodo0);
                 }
             });
@@ -975,7 +1014,7 @@ function cleanUpTodos(found, existing) {
     // Now search for a parent for each group
     groupList.forEach(group => {
         var _a;
-        const parent = (_a = existing.find(existingTodo => group.some(todo => (0, helpers_1.checkSimilarity)(todo.title, existingTodo.title)))) !== null && _a !== void 0 ? _a : group[0];
+        const parent = (_a = existing.find(existingTodo => group.some(todo => (0, Helpers_1.checkSimilarity)(todo.title, existingTodo.title)))) !== null && _a !== void 0 ? _a : group[0];
         if (parent.type === "exists") {
             if (!parent.open) {
                 // überprüfen, ob ein to_do das Schließen gerade wollte. Wenn ja, dann nicht schließen anfordern
@@ -997,77 +1036,6 @@ function cleanUpTodos(found, existing) {
     return found;
 }
 exports.cleanUpTodos = cleanUpTodos;
-
-
-/***/ }),
-
-/***/ 5008:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkSimilarity = exports.escapeForRegExp = exports.lineBreak = exports.assignFlow = exports.stripAt = exports.addAt = exports.reduceToList = void 0;
-const ArgumentContext_1 = __nccwpck_require__(3441);
-const levenshtein = __nccwpck_require__(7468);
-function reduceToList(array) {
-    if (array.length == 1)
-        return array[0];
-    return array.reduce((prev, value, i) => {
-        if (i + 1 === array.length) {
-            return prev + ` and ${value}`;
-        }
-        else if (i === 0) {
-            return prev + `${value}`;
-        }
-        else {
-            return prev + `, ${value}`;
-        }
-    }, '');
-}
-exports.reduceToList = reduceToList;
-function addAt(str) {
-    if (!str.startsWith('@'))
-        return `@${str}`;
-    return str;
-}
-exports.addAt = addAt;
-function stripAt(str) {
-    if (str.startsWith('@'))
-        return str.split('@')[1];
-    return str;
-}
-exports.stripAt = stripAt;
-function assignFlow(author) {
-    if (ArgumentContext_1.argumentContext.autoAssign === true) {
-        if (author)
-            return [author];
-        return [];
-    }
-    else if (ArgumentContext_1.argumentContext.autoAssign) {
-        return ArgumentContext_1.argumentContext.autoAssign.map((n) => stripAt(n));
-    }
-    return [];
-}
-exports.assignFlow = assignFlow;
-function lineBreak(body) {
-    const regEx = /\/?&lt;br(?:\s\/)?&gt;/g; // Regular expression to match all occurences of '&lt;br&gt'
-    return body.replace(regEx, '<br>');
-}
-exports.lineBreak = lineBreak;
-function escapeForRegExp(input) {
-    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
-exports.escapeForRegExp = escapeForRegExp;
-function checkSimilarity(title0, title1) {
-    // TODO Extend config for issue merge?
-    // wenn das to_do einen sehr ähnlichen Titel hat, aber evtl nicht in der selben Datei steht
-    // kann er entweder zusammen gefasst werden (wenn der Titel länger als z.B. 15 zeichen ist?)
-    // oder der Titel kürzer ist und somit nicht aussagekräftig genug ist um es in dasselbe Issue zu stecken
-    // -> fürs erste gehen wir mal davon aus so oft wie möglich zu mergen
-    return (ArgumentContext_1.argumentContext.titleSimilarity && levenshtein(title0, title1) <= ((title0.length + title1.length) / 2) * (1 - ArgumentContext_1.argumentContext.titleSimilarity / 100));
-}
-exports.checkSimilarity = checkSimilarity;
 
 
 /***/ }),
@@ -5451,105 +5419,6 @@ class Deprecation extends Error {
 }
 
 exports.Deprecation = Deprecation;
-
-
-/***/ }),
-
-/***/ 2437:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const fs = __nccwpck_require__(7147)
-const path = __nccwpck_require__(1017)
-const os = __nccwpck_require__(2037)
-
-function log (message) {
-  console.log(`[dotenv][DEBUG] ${message}`)
-}
-
-const NEWLINE = '\n'
-const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
-const RE_NEWLINES = /\\n/g
-const NEWLINES_MATCH = /\r\n|\n|\r/
-
-// Parses src into an Object
-function parse (src, options) {
-  const debug = Boolean(options && options.debug)
-  const obj = {}
-
-  // convert Buffers before splitting into lines and processing
-  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
-    // matching "KEY' and 'VAL' in 'KEY=VAL'
-    const keyValueArr = line.match(RE_INI_KEY_VAL)
-    // matched?
-    if (keyValueArr != null) {
-      const key = keyValueArr[1]
-      // default undefined or missing values to empty string
-      let val = (keyValueArr[2] || '')
-      const end = val.length - 1
-      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
-      const isSingleQuoted = val[0] === "'" && val[end] === "'"
-
-      // if single or double quoted, remove quotes
-      if (isSingleQuoted || isDoubleQuoted) {
-        val = val.substring(1, end)
-
-        // if double quoted, expand newlines
-        if (isDoubleQuoted) {
-          val = val.replace(RE_NEWLINES, NEWLINE)
-        }
-      } else {
-        // remove surrounding whitespace
-        val = val.trim()
-      }
-
-      obj[key] = val
-    } else if (debug) {
-      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
-    }
-  })
-
-  return obj
-}
-
-function resolveHome (envPath) {
-  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
-}
-
-// Populates process.env from .env file
-function config (options) {
-  let dotenvPath = path.resolve(process.cwd(), '.env')
-  let encoding = 'utf8'
-  const debug = Boolean(options && options.debug)
-
-  if (options) {
-    if (options.path != null) {
-      dotenvPath = resolveHome(options.path)
-    }
-    if (options.encoding != null) {
-      encoding = options.encoding
-    }
-  }
-
-  try {
-    // specifying an encoding returns a string instead of a buffer
-    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
-
-    Object.keys(parsed).forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
-        process.env[key] = parsed[key]
-      } else if (debug) {
-        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
-      }
-    })
-
-    return { parsed }
-  } catch (e) {
-    return { error: e }
-  }
-}
-
-module.exports.config = config
-module.exports.parse = parse
 
 
 /***/ }),

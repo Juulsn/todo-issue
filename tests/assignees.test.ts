@@ -6,7 +6,7 @@ jest.mock("../src/GitHubContext")
 
 import {getMentionedAssignees, generateAssignedTo} from "../src/AssignHelper";
 import {argumentContext} from "../src/ArgumentContext";
-import {assignFlow} from "../src/helpers";
+import {assignFlow} from "../src/Helpers";
 
 describe("Tests Tags", () => {
 

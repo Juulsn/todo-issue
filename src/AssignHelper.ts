@@ -1,5 +1,5 @@
 import {argumentContext} from "./ArgumentContext";
-import {addAt, reduceToList, stripAt} from "./helpers";
+import {addAt, reduceToList, stripAt} from "./Helpers";
 import {prNr} from "./RepoContext";
 
 export function generateAssignedTo(author: string, assignees: string[]) {
@@ -22,7 +22,7 @@ export function generateAssignedTo(author: string, assignees: string[]) {
 
 export function getMentionedAssignees(content: string, clipMentionedFromContent: boolean): [string, string[]] {
 
-    const regex = new RegExp(`@[a-zA-Z0-9@._-]+\\b`);
+    const regex = new RegExp(`@[a-zA-Z\d@._-]+\\b`);
 
     const assignees = content.match(regex)?.map(value => stripAt(value)) ?? [];
 

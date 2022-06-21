@@ -1,6 +1,6 @@
 import {Change, Chunk} from "parse-diff";
 import {argumentContext} from "./ArgumentContext";
-import {assignFlow, escapeForRegExp, lineBreak} from "./helpers";
+import {assignFlow, escapeForRegExp, lineBreak} from "./Helpers";
 import {prNr} from "./RepoContext";
 import {getUsername} from "./GitHubContext";
 

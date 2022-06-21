@@ -2,32 +2,27 @@ import {config} from "dotenv";
 
 // @ts-ignore
 import {testTodoChange} from "./helpers";
+import {addFakeIssue, clearFakeIssues} from "../src/TaskSystems/MockedTaskSystem";
 
 config();
 
-jest.mock("../src/TodoHandler")
+jest.mock("../src/TaskSystem")
 jest.mock("../src/GitHubContext")
-
-const context = require("../src/GitHubContext")
-
-let existingIssues: any[] = [];
 
 describe("Other TODO Change Tests", () => {
 
     beforeEach(() => {
         jest.resetModules()
-        existingIssues = []
+        clearFakeIssues()
     })
 
     const test = (file: string, expects = {}) => testTodoChange("other", file, expects);
 
-    context.getIssues.mockImplementation(() => ({data: existingIssues}))
-
     it("Move TODO", async () => {
-        existingIssues.push({
+        addFakeIssue({
             title: 'TODO should we reinvent the gear here?? üäö',
             number: 241,
-            state: "open",
+            open: true,
             assignees: []
         })
         await test("MoveComment")

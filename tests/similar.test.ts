@@ -1,4 +1,4 @@
-import {checkSimilarity} from "../src/helpers";
+import {checkSimilarity} from "../src/Helpers";
 
 describe('Test Similarity', () => {
     it('returns similar', function () {
