@@ -1,10 +1,6 @@
-import {config} from "dotenv";
-
-config();
-
 import {repoObject} from "./RepoContext";
 import {argumentContext} from "./ArgumentContext";
-import {ensureLabelExists} from "./GitHubContext";
+import {currentTaskSystem} from "./TaskSystem";
 
 export declare type Label = {
     owner: string,
@@ -36,12 +32,12 @@ async function getDefaultLabels(): Promise<string[]> {
     if (argumentContext.label === true) {
         const defaultLabel = createLabel('todo :spiral_notepad:', '00B0D8');
 
-        await ensureLabelExists(defaultLabel);
+        await currentTaskSystem().ensureLabelExists(defaultLabel);
         return defaultLabelCache = [defaultLabel.name]
     }
 
     for (let labelName of argumentContext.label)
-        await ensureLabelExists(createLabel(labelName));
+        await currentTaskSystem().ensureLabelExists(createLabel(labelName));
 
     return defaultLabelCache = argumentContext.label
 }
@@ -52,7 +48,7 @@ export async function getLabels(tags: string[]): Promise<string[]> {
         return getDefaultLabels();
 
     for (const value of tags)
-        await ensureLabelExists(createLabel(value));
+        await currentTaskSystem().ensureLabelExists(createLabel(value));
 
     return tags;
 }

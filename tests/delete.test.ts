@@ -2,31 +2,28 @@
 import {testTodoChange} from "./helpers";
 
 import {config} from "dotenv";
+import {addFakeIssue, clearFakeIssues} from "../src/TaskSystems/MockedTaskSystem";
+
 config();
 
-const context = require("../src/GitHubContext")
-
-jest.mock("../src/TodoHandler")
+jest.mock("../src/TaskSystem")
 jest.mock("../src/GitHubContext")
-
-let existingIssues: any[] = [];
 
 describe("Delete Test", () => {
 
     beforeEach(() => {
         jest.resetModules()
-        existingIssues = []
+        clearFakeIssues()
     })
 
     const test = (file: string, expects = {}) => testTodoChange("delete", file, expects);
 
-    context.getIssues.mockImplementation(() => ({data: existingIssues}))
-
     it("Delete TODO", async () => {
-        existingIssues.push({
+        addFakeIssue({
+            type: 'exists',
             title: 'a totally different TODO in the next Line',
-            number: 2,
-            state: "open",
+            issueId: 2,
+            open: true,
             assignees: []
         })
         await test("Delete", {closeTodo: 1})

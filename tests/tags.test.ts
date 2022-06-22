@@ -2,11 +2,14 @@ import {config} from "dotenv";
 
 config();
 
+// shouldn't mock GithubHandler, but octokit..
+jest.mock("../src/TaskSystem")
 jest.mock("../src/GitHubContext")
 
 import {getLabels, defaultLabelCache} from "../src/LabelHelper";
 import {splitTagsFromTitle} from "../src/TodoDetails";
 import {argumentContext} from "../src/ArgumentContext";
+
 describe("Tests Tags", () => {
 
     beforeEach(() => {

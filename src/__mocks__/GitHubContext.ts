@@ -6,7 +6,6 @@ const octokit = new Octokit({auth: process.env.PRIVAT_READ_TOKEN ?? process.env.
 
 github.eventName = 'push'
 
-export const getCommit = jest.fn(() => ({data: {parents: {length: 1}}}))
 export const getUsername = jest.fn(() => "TestUser")
 
 export const getDiffFile = jest.fn(async () => {
@@ -18,7 +17,3 @@ export const getDiffFile = jest.fn(async () => {
     });
     return diff.data;
 })
-
-export const getIssues = jest.fn()
-
-export const ensureLabelExists = jest.fn();

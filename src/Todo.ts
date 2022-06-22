@@ -131,7 +131,6 @@ export declare type Todo = {
     username: string
     assignedToString: string
     assignees: string[]
-    number: number | false
     issueId: number | false
     open: boolean | undefined
     range: string

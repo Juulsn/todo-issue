@@ -1,5 +1,5 @@
 import {Todo} from "./Todo";
-import {checkSimilarity} from "./helpers";
+import {checkSimilarity} from "./Helpers";
 
 export function cleanUpTodos(found: Todo[], existing: Todo[]): Todo[] {
 

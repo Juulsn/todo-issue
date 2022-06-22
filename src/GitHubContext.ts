@@ -1,23 +1,8 @@
 import {Octokit} from "@octokit/rest";
 import {context as github} from "@actions/github";
-import {Label} from "./LabelHelper";
 import {repoObject} from "./RepoContext";
 
 export const octokit = new Octokit({auth: process.env.PRIVAT_READ_TOKEN ?? process.env.GITHUB_TOKEN})
-
-/**
- *
- * @param page
- * @returns Up to 100 issues at a time
- */
-export async function getIssues(page: number) {
-    return octokit.issues.listForRepo({
-        ...repoObject,
-        per_page: 100,
-        state: "all",
-        page
-    })
-}
 
 /**
  * @returns raw diff data
@@ -41,21 +26,6 @@ export async function getDiffFile() : Promise<string | undefined> {
         console.error("Diff file might be too big")
         return undefined
     }
-}
-
-const existingLabels: string[] = [];
-export async function ensureLabelExists(label: Label): Promise<void> {
-
-    if (existingLabels.includes(label.name))
-        return
-
-    try {
-        await octokit.issues.createLabel(label)
-    } catch {
-        // Label already exists, ignore
-    }
-
-    existingLabels.push(label.name)
 }
 
 export function getUsername() {
