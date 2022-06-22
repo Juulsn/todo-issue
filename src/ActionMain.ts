@@ -5,6 +5,7 @@ import {cleanUpTodos} from "./TodoMatcher";
 import {GitHubTaskSystem} from "./TaskSystems/GithubTaskSystem";
 import {currentTaskSystem, setTaskSystem, ITaskSystem} from "./TaskSystem";
 import {debug, error, info, setFailed, warning} from "@actions/core";
+import {JiraTaskSystem} from "./TaskSystems/JiraTaskSystem";
 
 
 export default async () => {
@@ -68,9 +69,12 @@ function checkEventTrigger() {
 }
 
 function getTaskSystem(): ITaskSystem | undefined {
-    switch (argumentContext.taskSystem) {
-        case "GitHub":
+    switch (argumentContext.taskSystem.toLowerCase()) {
+        case "github":
             setTaskSystem(new GitHubTaskSystem());
+            break
+        case "jira":
+            setTaskSystem(new JiraTaskSystem());
             break
         default:
             setFailed(`${argumentContext.taskSystem} can not be used at the time. You may open a Issue or PR to support this task system`);
