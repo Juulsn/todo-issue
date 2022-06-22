@@ -571,6 +571,22 @@ class GitHubTaskSystem {
             this.existingLabels.push(label.name);
         });
         this.rateLimit = 0;
+        this.checkRateLimit = (decrease = true) => __awaiter(this, void 0, void 0, function* () {
+            if (this.rateLimit == 0) {
+                let rate = yield octokit.rateLimit.get();
+                this.rateLimit = rate.data.rate.remaining;
+                if (rate.data.rate.remaining == 0) {
+                    const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
+                    (0, core_1.debug)(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
+                    yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
+                }
+                rate = yield octokit.rateLimit.get();
+                this.rateLimit = rate.data.rate.remaining;
+            }
+            if (decrease)
+                this.rateLimit--;
+            return;
+        });
         this.updateTodo = (todo) => __awaiter(this, void 0, void 0, function* () {
             if (!todo.issueId) {
                 (0, core_1.error)(`Can't update issue [${todo.title}]! No issueId found`);
@@ -621,24 +637,6 @@ class GitHubTaskSystem {
             yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
             yield this.checkRateLimit();
             yield this.updateAssignees(todo.similarTodo);
-        });
-    }
-    checkRateLimit(decrease = true) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.rateLimit == 0) {
-                let rate = yield octokit.rateLimit.get();
-                this.rateLimit = rate.data.rate.remaining;
-                if (rate.data.rate.remaining == 0) {
-                    const timeToWaitInMillis = (rate.data.rate.reset * 1000) - Date.now();
-                    (0, core_1.debug)(`Waiting ${timeToWaitInMillis / 1000} seconds because of githubs api rate limit`);
-                    yield new Promise(resolve => setTimeout(resolve, timeToWaitInMillis));
-                }
-                rate = yield octokit.rateLimit.get();
-                this.rateLimit = rate.data.rate.remaining;
-            }
-            if (decrease)
-                this.rateLimit--;
-            return;
         });
     }
 }

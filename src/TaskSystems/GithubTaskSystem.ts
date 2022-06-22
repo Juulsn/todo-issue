@@ -107,7 +107,7 @@ export class GitHubTaskSystem implements ITaskSystem {
 
     rateLimit = 0;
 
-    async checkRateLimit(decrease: boolean = true): Promise<void> {
+    checkRateLimit = async (decrease: boolean = true): Promise<void> => {
 
         if (this.rateLimit == 0) {
 
