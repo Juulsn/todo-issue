@@ -515,21 +515,23 @@ const core_1 = __nccwpck_require__(2186);
 const octokit = new rest_1.Octokit({ auth: process.env.GITHUB_TOKEN });
 class GitHubTaskSystem {
     constructor() {
-        this.existingLabels = [];
-        this.rateLimit = 0;
-    }
-    /**
-     *
-     * @param page
-     * @returns Up to 100 issues at a time
-     */
-    getIssuesInPage(page) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.addTodo = (todo) => __awaiter(this, void 0, void 0, function* () {
+            const body = (0, Helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
+            (0, core_1.info)(`Creating issue with title [${todo.title}] because of a comment`);
+            const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
+            todo.issueId = val.data.number;
+            yield this.checkRateLimit();
+            (0, core_1.debug)(`Issue [${todo.title}] got ID ${todo.issueId}`);
+        });
+        /**
+         *
+         * @param page
+         * @returns Up to 100 issues at a time
+         */
+        this.getIssuesInPage = (page) => __awaiter(this, void 0, void 0, function* () {
             return octokit.issues.listForRepo(Object.assign(Object.assign({}, RepoContext_1.repoObject), { per_page: 100, state: "all", page }));
         });
-    }
-    getTodos() {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.getTodos = () => __awaiter(this, void 0, void 0, function* () {
             const existingTodos = [];
             let page = 0;
             let next = true;
@@ -556,9 +558,8 @@ class GitHubTaskSystem {
             }
             return existingTodos;
         });
-    }
-    ensureLabelExists(label) {
-        return __awaiter(this, void 0, void 0, function* () {
+        this.existingLabels = [];
+        this.ensureLabelExists = (label) => __awaiter(this, void 0, void 0, function* () {
             if (this.existingLabels.includes(label.name))
                 return;
             try {
@@ -568,6 +569,58 @@ class GitHubTaskSystem {
                 // Label already exists, ignore
             }
             this.existingLabels.push(label.name);
+        });
+        this.rateLimit = 0;
+        this.updateTodo = (todo) => __awaiter(this, void 0, void 0, function* () {
+            if (!todo.issueId) {
+                (0, core_1.error)(`Can't update issue [${todo.title}]! No issueId found`);
+                return;
+            }
+            (0, core_1.info)(`Updating issue #${todo.issueId} because the title were changed`);
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
+            yield this.checkRateLimit();
+        });
+        this.closeTodo = (todo) => __awaiter(this, void 0, void 0, function* () {
+            if (!todo.issueId) {
+                (0, core_1.error)(`Can't close issue [${todo.title}]! No issueId found`);
+                return;
+            }
+            const body = (0, Helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
+            (0, core_1.info)(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
+            yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
+            yield this.checkRateLimit();
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
+            yield this.checkRateLimit();
+        });
+        this.reopenTodo = (todo) => __awaiter(this, void 0, void 0, function* () {
+            if (!todo.issueId) {
+                (0, core_1.error)(`Can't reopen issue [${todo.title}]! No issueId found`);
+                return;
+            }
+            (0, core_1.info)(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
+            yield this.checkRateLimit();
+        });
+        this.updateAssignees = (todo) => __awaiter(this, void 0, void 0, function* () {
+            var _b;
+            if (!((_b = todo.assignees) === null || _b === void 0 ? void 0 : _b.length))
+                return;
+            if (!todo.issueId)
+                return;
+            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
+            yield this.checkRateLimit();
+        });
+        this.addReferenceTodo = (todo) => __awaiter(this, void 0, void 0, function* () {
+            var _c, _d, _e;
+            const body = (0, Helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
+            if (!((_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.issueId)) {
+                (0, core_1.error)(`Can't add reference for [${todo.title}] to issue [${(_d = todo.similarTodo) === null || _d === void 0 ? void 0 : _d.title}]. No issueId found`);
+                return;
+            }
+            (0, core_1.info)(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_e = todo.similarTodo) === null || _e === void 0 ? void 0 : _e.title}] because it is similar to a the new issue [${todo.title}]`);
+            yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
+            yield this.checkRateLimit();
+            yield this.updateAssignees(todo.similarTodo);
         });
     }
     checkRateLimit(decrease = true) {
@@ -586,77 +639,6 @@ class GitHubTaskSystem {
             if (decrease)
                 this.rateLimit--;
             return;
-        });
-    }
-    addTodo(todo) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const body = (0, Helpers_1.lineBreak)(templates_1.template.issue(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-            (0, core_1.info)(`Creating issue with title [${todo.title}] because of a comment`);
-            const val = yield octokit.issues.create(Object.assign(Object.assign({}, RepoContext_1.repoObject), { title: todo.title, body, labels: todo.labels, assignees: todo.assignees }));
-            todo.issueId = val.data.number;
-            yield this.checkRateLimit();
-            (0, core_1.debug)(`Issue [${todo.title}] got ID ${todo.issueId}`);
-        });
-    }
-    updateTodo(todo) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!todo.issueId) {
-                (0, core_1.error)(`Can't update issue [${todo.title}]! No issueId found`);
-                return;
-            }
-            (0, core_1.info)(`Updating issue #${todo.issueId} because the title were changed`);
-            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, title: todo.title }));
-            yield this.checkRateLimit();
-        });
-    }
-    closeTodo(todo) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!todo.issueId) {
-                (0, core_1.error)(`Can't close issue [${todo.title}]! No issueId found`);
-                return;
-            }
-            const body = (0, Helpers_1.lineBreak)(templates_1.template.close(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-            (0, core_1.info)(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`);
-            yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, body }));
-            yield this.checkRateLimit();
-            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'closed' }));
-            yield this.checkRateLimit();
-        });
-    }
-    reopenTodo(todo) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!todo.issueId) {
-                (0, core_1.error)(`Can't reopen issue [${todo.title}]! No issueId found`);
-                return;
-            }
-            (0, core_1.info)(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`);
-            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, state: 'open' }));
-            yield this.checkRateLimit();
-        });
-    }
-    updateAssignees(todo) {
-        var _a;
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!((_a = todo.assignees) === null || _a === void 0 ? void 0 : _a.length))
-                return;
-            if (!todo.issueId)
-                return;
-            yield octokit.issues.update(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.issueId, assignees: todo.assignees }));
-            yield this.checkRateLimit();
-        });
-    }
-    addReferenceTodo(todo) {
-        var _a, _b, _c;
-        return __awaiter(this, void 0, void 0, function* () {
-            const body = (0, Helpers_1.lineBreak)(templates_1.template.comment(Object.assign(Object.assign(Object.assign({}, RepoContext_1.repoObject), { body: todo.bodyComment }), todo)));
-            if (!((_a = todo.similarTodo) === null || _a === void 0 ? void 0 : _a.issueId)) {
-                (0, core_1.error)(`Can't add reference for [${todo.title}] to issue [${(_b = todo.similarTodo) === null || _b === void 0 ? void 0 : _b.title}]. No issueId found`);
-                return;
-            }
-            (0, core_1.info)(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${(_c = todo.similarTodo) === null || _c === void 0 ? void 0 : _c.title}] because it is similar to a the new issue [${todo.title}]`);
-            yield octokit.issues.createComment(Object.assign(Object.assign({}, RepoContext_1.repoObject), { issue_number: todo.similarTodo.issueId, body }));
-            yield this.checkRateLimit();
-            yield this.updateAssignees(todo.similarTodo);
         });
     }
 }

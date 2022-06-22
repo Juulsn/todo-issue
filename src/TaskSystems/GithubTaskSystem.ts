@@ -11,21 +11,46 @@ const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
 export class GitHubTaskSystem implements ITaskSystem {
 
+    addTodo = async (todo: Todo): Promise<void> => {
+        const body = lineBreak(template.issue(
+            {
+                ...repoObject,
+                body: todo.bodyComment,
+                ...todo
+            })
+        )
+
+        info(`Creating issue with title [${todo.title}] because of a comment`)
+
+        const val = await octokit.issues.create({
+            ...repoObject,
+            title: todo.title,
+            body,
+            labels: todo.labels,
+            assignees: todo.assignees
+        })
+
+        todo.issueId = val.data.number;
+
+        await this.checkRateLimit();
+
+        debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
+    };
+
     /**
      *
      * @param page
      * @returns Up to 100 issues at a time
      */
-    async getIssuesInPage(page: number) {
-        return octokit.issues.listForRepo({
+    getIssuesInPage = async (page: number) =>
+        octokit.issues.listForRepo({
             ...repoObject,
             per_page: 100,
             state: "all",
             page
         })
-    }
 
-    async getTodos() {
+    getTodos = async () => {
         const existingTodos: Todo[] = [];
 
         let page = 0;
@@ -66,7 +91,7 @@ export class GitHubTaskSystem implements ITaskSystem {
 
     existingLabels: string[] = [];
 
-    async ensureLabelExists(label: Label): Promise<void> {
+    ensureLabelExists = async (label: Label): Promise<void> => {
 
         if (this.existingLabels.includes(label.name))
             return
@@ -105,34 +130,7 @@ export class GitHubTaskSystem implements ITaskSystem {
         return;
     }
 
-    async addTodo(todo: Todo) {
-
-        const body = lineBreak(template.issue(
-            {
-                ...repoObject,
-                body: todo.bodyComment,
-                ...todo
-            })
-        )
-
-        info(`Creating issue with title [${todo.title}] because of a comment`)
-
-        const val = await octokit.issues.create({
-            ...repoObject,
-            title: todo.title,
-            body,
-            labels: todo.labels,
-            assignees: todo.assignees
-        })
-
-        todo.issueId = val.data.number;
-
-        await this.checkRateLimit();
-
-        debug(`Issue [${todo.title}] got ID ${todo.issueId}`)
-    }
-
-    async updateTodo(todo: Todo): Promise<void> {
+    updateTodo = async (todo: Todo): Promise<void> => {
 
         if (!todo.issueId) {
             error(`Can't update issue [${todo.title}]! No issueId found`)
@@ -151,7 +149,7 @@ export class GitHubTaskSystem implements ITaskSystem {
         await this.checkRateLimit()
     }
 
-    async closeTodo(todo: Todo): Promise<void> {
+    closeTodo = async (todo: Todo): Promise<void> => {
 
         if (!todo.issueId) {
             error(`Can't close issue [${todo.title}]! No issueId found`)
@@ -185,7 +183,7 @@ export class GitHubTaskSystem implements ITaskSystem {
         await this.checkRateLimit();
     }
 
-    async reopenTodo(todo: Todo): Promise<void> {
+    reopenTodo = async (todo: Todo): Promise<void> => {
 
         if (!todo.issueId) {
             error(`Can't reopen issue [${todo.title}]! No issueId found`)
@@ -203,7 +201,7 @@ export class GitHubTaskSystem implements ITaskSystem {
         await this.checkRateLimit();
     }
 
-    async updateAssignees(todo: Todo): Promise<void> {
+    updateAssignees = async (todo: Todo): Promise<void> => {
 
         if (!todo.assignees?.length) return
         if (!todo.issueId) return
@@ -217,7 +215,7 @@ export class GitHubTaskSystem implements ITaskSystem {
         await this.checkRateLimit();
     }
 
-    async addReferenceTodo(todo: Todo): Promise<void> {
+    addReferenceTodo = async (todo: Todo): Promise<void> => {
 
         const body = lineBreak(template.comment(
             {
