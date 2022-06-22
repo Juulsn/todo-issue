@@ -5,7 +5,7 @@ import {Octokit} from "@octokit/rest";
 import {repoObject} from "../RepoContext";
 import {Label} from "../LabelHelper";
 import {ITaskSystem} from "../TaskSystem";
-import {debug, error, info} from "@actions/core";
+import {debug, error, notice} from "@actions/core";
 
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN})
 
@@ -20,7 +20,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             })
         )
 
-        info(`Creating issue with title [${todo.title}] because of a comment`)
+        notice(`Creating issue with title [${todo.title}] because of a comment`);
 
         const val = await octokit.issues.create({
             ...repoObject,
@@ -137,7 +137,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             return
         }
 
-        info(`Updating issue #${todo.issueId} because the title were changed`)
+        notice(`Updating issue #${todo.issueId} because the title were changed`)
 
         await octokit.issues.update({
             ...repoObject,
@@ -164,7 +164,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             })
         )
 
-        info(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`)
+        notice(`Closing issue #${todo.issueId} because a comment with the title [${todo.title}] were removed`)
 
         await octokit.issues.createComment({
             ...repoObject,
@@ -190,7 +190,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             return
         }
 
-        info(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`)
+        notice(`Reopening issue #${todo.issueId} because there is a new issue with the same or a similar name`)
 
         await octokit.issues.update({
             ...repoObject,
@@ -230,7 +230,7 @@ export class GitHubTaskSystem implements ITaskSystem {
             return
         }
 
-        info(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${todo.similarTodo?.title}] because it is similar to a the new issue [${todo.title}]`)
+        notice(`Adding a reference to the issue #${todo.similarTodo.issueId} with title [${todo.similarTodo?.title}] because it is similar to a the new issue [${todo.title}]`)
 
         await octokit.issues.createComment({
             ...repoObject,
