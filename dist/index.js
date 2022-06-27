@@ -92,7 +92,10 @@ function handleTodos(todos, method) {
                     yield context.checkRateLimit(false);
                     yield method(value);
                 }
-                (0, core_1.error)(e);
+                else {
+                    (0, core_1.error)(e);
+                    throw e;
+                }
             }
         }
     });
@@ -699,7 +702,7 @@ function generateTodosFromCommit() {
     return __awaiter(this, void 0, void 0, function* () {
         const todos = [];
         // RegEx that matches lines with the configured keywords
-        const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${ArgumentContext_1.argumentContext.keywords.join('|')})\\b\\W*(?<title>((?!-->).)+)`, (!ArgumentContext_1.argumentContext.caseSensitive ? 'i' : ''));
+        const regex = new RegExp(`^(?<beforeTag>\\W+)(?<keyword>${ArgumentContext_1.argumentContext.keywords.join('|')})\\b\\S*(?<title>((?!-->).)+)`, (!ArgumentContext_1.argumentContext.caseSensitive ? 'i' : ''));
         let files;
         // Diff as files or import all
         if (ArgumentContext_1.argumentContext.importAll) {

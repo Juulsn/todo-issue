@@ -93,9 +93,10 @@ async function handleTodos(todos: Todo[], method: (todo: Todo) => Promise<void>)
                 //wait and retry
                 await context.checkRateLimit(false);
                 await method(value);
+            } else {
+                error(e as Error);
+                throw e;
             }
-
-            error(e as Error);
         }
     }
 }

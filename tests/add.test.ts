@@ -29,6 +29,15 @@ describe("Add Test", () => {
         await test("Add", {addTodo: 1})
     })
 
+    it("Supports non-word characters in title", async () => {
+
+        taskSystem.addTodo.mockImplementationOnce((todo: Todo) => {
+            expect(todo.title).toEqual("你好世界")
+        })
+
+        await test("AddChinese", {addTodo: 1})
+    })
+
     it("Adds Body", async () => {
         await test("AddBody")
     })
