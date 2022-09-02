@@ -1,6 +1,8 @@
 import {Octokit} from "@octokit/rest";
 import {context as github} from "@actions/github";
 import {repoObject} from "./RepoContext";
+import {argumentContext} from "./ArgumentContext";
+import {execSync} from "child_process";
 
 export const octokit = new Octokit({auth: process.env.PRIVAT_READ_TOKEN ?? process.env.GITHUB_TOKEN})
 
@@ -9,7 +11,12 @@ export const octokit = new Octokit({auth: process.env.PRIVAT_READ_TOKEN ?? proce
  */
 export async function getDiffFile() : Promise<string | undefined> {
     try {
-        console.debug(`${github.payload.commits.length} commits pushed`)
+
+        if(argumentContext.importAll)
+            return execSync("git diff").toString()
+
+        if(github.payload.commits)
+            console.debug(`${github.payload.commits.length} commits pushed`)
 
         let diff = await octokit.repos.compareCommitsWithBasehead({
             ...repoObject,

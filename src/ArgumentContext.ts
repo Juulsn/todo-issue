@@ -1,4 +1,4 @@
-import github from '@actions/github';
+import {context} from '@actions/github';
 import {getInput} from 'action-input-parser';
 
 export const argumentContext = {
@@ -27,7 +27,7 @@ export const argumentContext = {
 
     taskSystem: getInput("taskSystem", {type: "string", default: "GitHub"}) as string,
 
-    importAll: github?.context?.payload?.inputs?.importAll as boolean,
+    importAll: context?.payload?.inputs?.importAll as boolean | undefined,
 
     reopenClosed: getInput("reopenClosed", {type: "boolean", default: true}) as boolean
 

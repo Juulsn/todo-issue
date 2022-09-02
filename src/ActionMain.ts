@@ -55,7 +55,7 @@ export default async () => {
 }
 
 function checkEventTrigger() {
-    if (argumentContext.importAll) {
+    if (argumentContext.importAll == true) {
         if (github.eventName !== 'workflow_dispatch') {
             setFailed('importAll can only be used on trigger workflow_dispatch')
             return
