@@ -190,7 +190,7 @@ exports.argumentContext = {
     }),
     excludePattern: (0, action_input_parser_1.getInput)('excludePattern', { type: 'string' }),
     taskSystem: (0, action_input_parser_1.getInput)("taskSystem", { type: "string", default: "GitHub" }),
-    importAll: (_b = (_a = github_1.context === null || github_1.context === void 0 ? void 0 : github_1.context.payload) === null || _a === void 0 ? void 0 : _a.inputs) === null || _b === void 0 ? void 0 : _b.importAll,
+    importAll: ((_b = (_a = github_1.context === null || github_1.context === void 0 ? void 0 : github_1.context.payload) === null || _a === void 0 ? void 0 : _a.inputs) === null || _b === void 0 ? void 0 : _b.importAll.toString()) === 'true',
     reopenClosed: (0, action_input_parser_1.getInput)("reopenClosed", { type: "boolean", default: true })
 };
 

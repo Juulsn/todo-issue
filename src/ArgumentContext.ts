@@ -27,7 +27,7 @@ export const argumentContext = {
 
     taskSystem: getInput("taskSystem", {type: "string", default: "GitHub"}) as string,
 
-    importAll: context?.payload?.inputs?.importAll as boolean,
+    importAll: context?.payload?.inputs?.importAll.toString() === 'true', // it feels like this is sometimes a bool, sometimes a string
 
     reopenClosed: getInput("reopenClosed", {type: "boolean", default: true}) as boolean
 
