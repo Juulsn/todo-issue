@@ -24,7 +24,8 @@ const GithubTaskSystem_1 = __nccwpck_require__(1580);
 const TaskSystem_1 = __nccwpck_require__(2963);
 const core_1 = __nccwpck_require__(2186);
 exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
-    checkEventTrigger();
+    if (!checkEventTrigger())
+        return;
     const taskSystem = getTaskSystem();
     if (!taskSystem)
         return;
@@ -58,14 +59,15 @@ function checkEventTrigger() {
     if (ArgumentContext_1.argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
             (0, core_1.setFailed)('importAll can only be used on trigger workflow_dispatch');
-            return;
+            return false;
         }
         (0, core_1.info)('Import all mode. Adding all TODOs from codebase which were not created yet');
     }
     else if (github_1.context.eventName !== 'push') {
         (0, core_1.setFailed)('Action can only be used on trigger push or in manual and importAll mode');
-        return;
+        return false;
     }
+    return true;
 }
 function getTaskSystem() {
     switch (ArgumentContext_1.argumentContext.taskSystem) {

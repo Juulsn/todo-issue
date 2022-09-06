@@ -9,7 +9,8 @@ import {debug, error, info, setFailed, warning} from "@actions/core";
 
 export default async () => {
 
-    checkEventTrigger();
+    if (!checkEventTrigger())
+        return
 
     const taskSystem = getTaskSystem();
 
@@ -54,17 +55,20 @@ export default async () => {
     await handleTodos(toAddReference, taskSystem.addReferenceTodo);
 }
 
-function checkEventTrigger() {
+function checkEventTrigger() : boolean {
     if (argumentContext.importAll) {
-        if (github.eventName !== 'workflow_dispatch') {
+        if (github.eventName !== 'workflow_dispatch'){
             setFailed('importAll can only be used on trigger workflow_dispatch')
-            return
+            return false
         }
+
         info('Import all mode. Adding all TODOs from codebase which were not created yet')
-    } else if (github.eventName !== 'push') {
+    } else if (github.eventName !== 'push'){
         setFailed('Action can only be used on trigger push or in manual and importAll mode')
-        return
+        return false
     }
+
+    return true
 }
 
 function getTaskSystem(): ITaskSystem | undefined {
