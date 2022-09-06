@@ -27,7 +27,7 @@ export const argumentContext = {
 
     taskSystem: getInput("taskSystem", {type: "string", default: "GitHub"}) as string,
 
-    importAll: context?.payload?.inputs?.importAll as boolean | undefined,
+    importAll: context?.payload?.inputs?.importAll as boolean,
 
     reopenClosed: getInput("reopenClosed", {type: "boolean", default: true}) as boolean
 

@@ -55,7 +55,7 @@ exports["default"] = () => __awaiter(void 0, void 0, void 0, function* () {
     yield handleTodos(toAddReference, taskSystem.addReferenceTodo);
 });
 function checkEventTrigger() {
-    if (ArgumentContext_1.argumentContext.importAll == true) {
+    if (ArgumentContext_1.argumentContext.importAll) {
         if (github_1.context.eventName !== 'workflow_dispatch') {
             (0, core_1.setFailed)('importAll can only be used on trigger workflow_dispatch');
             return;
