@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Issue Bot
-        uses: derjuulsn/todo-issue@main
+        uses: juulsn/todo-issue@main
         with:
           excludePattern: '^(node_modules/)'
         env:
