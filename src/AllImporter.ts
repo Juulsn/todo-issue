@@ -10,7 +10,9 @@ export function importEverything(): File[] {
     const paths: string[] = []
 
     argumentContext.keywords.forEach(keyword => {
-        const command = "cd " + process.env.GITHUB_WORKSPACE + '\n' + 'sudo git grep -Il ' + keyword
+        
+        const grepArgs = `-${!argumentContext.caseSensitive ? 'i' : ''}Il`;
+        const command = `cd ${process.env.GITHUB_WORKSPACE} && sudo git grep ${grepArgs} ${keyword}`
 
         execSync(command, {
             encoding: 'utf8'
