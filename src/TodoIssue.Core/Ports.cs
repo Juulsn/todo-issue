@@ -8,7 +8,7 @@ public interface ITodoSource
 public interface ITaskSystem
 {
     Task CheckRateLimitAsync(bool decrease = true, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<TodoItem>> GetTodosAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<TodoItem>> GetTodosAsync(IReadOnlyCollection<TodoItem> candidates, CancellationToken cancellationToken);
     Task EnsureLabelExistsAsync(string name, string? color = null, CancellationToken cancellationToken = default);
     Task AddTodoAsync(TodoItem todo, CancellationToken cancellationToken);
     Task UpdateTodoAsync(TodoItem todo, CancellationToken cancellationToken);

@@ -33,7 +33,7 @@ public sealed class TodoIssueRunner(
             return 0;
         }
 
-        var existingTodos = await taskSystem.GetTodosAsync(cancellationToken);
+        var existingTodos = await taskSystem.GetTodosAsync(todos, cancellationToken);
         log.Debug($"{existingTodos.Count} TODOs imported");
 
         todos = matcher.CleanUpTodos(todos, existingTodos);

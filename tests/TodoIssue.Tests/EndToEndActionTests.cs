@@ -47,8 +47,61 @@ public sealed class EndToEndActionTests
 
             Assert.Contains(server.Requests, request => request.Method == "GET" && request.Path == "/rate_limit");
             Assert.Contains(server.Requests, request => request.Method == "GET" && request.Path == "/repos/Juulsn/todo-issue/compare/base...head");
-            Assert.Contains(server.Requests, request => request.Method == "GET" && request.Path == "/repos/Juulsn/todo-issue/issues");
+            Assert.Contains(server.Requests, request => request.Method == "GET" && request.Path == "/search/issues");
+            Assert.DoesNotContain(server.Requests, request => request.Method == "POST" && request.Path == "/graphql");
+            Assert.DoesNotContain(server.Requests, request => request.Method == "GET" && request.Path == "/repos/Juulsn/todo-issue/issues");
             Assert.Contains(server.Requests, request => request.Method == "POST" && request.Path == "/repos/Juulsn/todo-issue/labels");
+        }
+        finally
+        {
+            temp.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ActionExecutableReferencesSimilarIssueFromSearch()
+    {
+        var diff = await File.ReadAllTextAsync(Fixture("add/AddSecond.txt"));
+        await using var server = new FakeGitHubServer(diff, query =>
+            query.Contains("OR", StringComparison.Ordinal)
+                ? """
+                  {"total_count":1,"incomplete_results":false,"items":[{
+                    "number":77,
+                    "title":"should we reinvent the wheel here??",
+                    "state":"open",
+                    "assignees":[{"login":"ExistingUser"}]
+                  }]}
+                  """
+                : """{"total_count":0,"incomplete_results":false,"items":[]}""");
+
+        var temp = Directory.CreateTempSubdirectory("todo-issue-e2e-");
+        try
+        {
+            var eventPath = Path.Combine(temp.FullName, "event.json");
+            await File.WriteAllTextAsync(eventPath, """
+            {
+              "before": "base",
+              "head_commit": {
+                "author": {
+                  "username": "TestUser"
+                }
+              }
+            }
+            """);
+
+            var result = await RunActionAsync(temp.FullName, eventPath, server.Url);
+
+            Assert.True(result.ExitCode == 0, $"Exit code: {result.ExitCode}\nSTDOUT:\n{result.StdOut}\nSTDERR:\n{result.StdErr}");
+            Assert.Contains("::notice::Adding a reference to the issue #77", result.StdOut);
+
+            Assert.DoesNotContain(server.Requests, request => request.Method == "POST" && request.Path == "/repos/Juulsn/todo-issue/issues");
+            var reference = Assert.Single(server.Requests, request => request.Method == "POST" && request.Path == "/repos/Juulsn/todo-issue/issues/77/comments");
+            using var payload = JsonDocument.Parse(reference.Body);
+            Assert.Contains("should we reinvent the gear here??", payload.RootElement.GetProperty("body").GetString() ?? "");
+
+            Assert.Contains(server.Requests, request => request.Method == "GET" && request.Path == "/search/issues" && request.Query.Contains("OR", StringComparison.Ordinal));
+            Assert.DoesNotContain(server.Requests, request => request.Method == "POST" && request.Path == "/graphql");
+            Assert.DoesNotContain(server.Requests, request => request.Method == "GET" && request.Path == "/repos/Juulsn/todo-issue/issues");
         }
         finally
         {
@@ -100,14 +153,16 @@ public sealed class EndToEndActionTests
     {
         private readonly HttpListener _listener = new();
         private readonly string _diff;
+        private readonly Func<string, string> _searchJson;
         private readonly CancellationTokenSource _shutdown = new();
         private readonly Task _serverTask;
         private readonly object _sync = new();
         private readonly List<RequestRecord> _requests = [];
 
-        public FakeGitHubServer(string diff)
+        public FakeGitHubServer(string diff, Func<string, string>? searchJson = null)
         {
             _diff = diff;
+            _searchJson = searchJson ?? (_ => """{"total_count":0,"incomplete_results":false,"items":[]}""");
             Url = $"http://127.0.0.1:{GetFreePort()}/";
             _listener.Prefixes.Add(Url);
             _listener.Start();
@@ -165,9 +220,10 @@ public sealed class EndToEndActionTests
             }
 
             var path = context.Request.Url?.AbsolutePath ?? "";
+            var query = context.Request.Url?.Query ?? "";
             lock (_sync)
             {
-                _requests.Add(new RequestRecord(context.Request.HttpMethod, path, body));
+                _requests.Add(new RequestRecord(context.Request.HttpMethod, path, query, body));
             }
 
             if (context.Request.HttpMethod == "GET" && path == "/rate_limit")
@@ -177,6 +233,19 @@ public sealed class EndToEndActionTests
             else if (context.Request.HttpMethod == "GET" && path == "/repos/Juulsn/todo-issue/compare/base...head")
             {
                 await TextAsync(context, _diff, "text/plain");
+            }
+            else if (context.Request.HttpMethod == "GET" && path == "/search/issues")
+            {
+                await JsonAsync(context, _searchJson(query));
+            }
+            else if (context.Request.HttpMethod == "POST" && path == "/repos/Juulsn/todo-issue/issues/77/comments")
+            {
+                context.Response.StatusCode = 201;
+                await JsonAsync(context, """{"id":456}""");
+            }
+            else if (context.Request.HttpMethod == "PATCH" && path == "/repos/Juulsn/todo-issue/issues/77")
+            {
+                await JsonAsync(context, """{"number":77}""");
             }
             else if (context.Request.HttpMethod == "GET" && path == "/repos/Juulsn/todo-issue/issues")
             {
@@ -219,5 +288,5 @@ public sealed class EndToEndActionTests
         }
     }
 
-    public sealed record RequestRecord(string Method, string Path, string Body);
+    public sealed record RequestRecord(string Method, string Path, string Query, string Body);
 }

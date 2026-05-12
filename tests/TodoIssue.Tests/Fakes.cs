@@ -33,7 +33,7 @@ internal sealed class FakeTaskSystem : ITaskSystem
 
     public Task CheckRateLimitAsync(bool decrease = true, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-    public Task<IReadOnlyList<TodoItem>> GetTodosAsync(CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<TodoItem>> GetTodosAsync(IReadOnlyCollection<TodoItem> candidates, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<TodoItem>>(_existing);
 
     public Task EnsureLabelExistsAsync(string name, string? color = null, CancellationToken cancellationToken = default)
