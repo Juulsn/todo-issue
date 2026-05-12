@@ -4,6 +4,7 @@
     <Project Path="src/TodoIssue.Core/TodoIssue.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/TodoIssue.LiveIntegrationTests/TodoIssue.LiveIntegrationTests.csproj" />
     <Project Path="tests/TodoIssue.Tests/TodoIssue.Tests.csproj" />
   </Folder>
 </Solution>
