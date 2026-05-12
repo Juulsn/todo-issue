@@ -9,14 +9,24 @@ export function importEverything(): File[] {
 
     const paths: string[] = []
 
-    argumentContext.keywords.forEach(keyword => {
-        
-        const grepArgs = `-${!argumentContext.caseSensitive ? 'i' : ''}Il`;
-        const command = `cd ${process.env.GITHUB_WORKSPACE} && sudo git grep ${grepArgs} ${keyword}`
+    const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
 
-        execSync(command, {
-            encoding: 'utf8'
-        }).split('\n').filter(name => name).forEach(path => {
+    argumentContext.keywords.forEach(keyword => {
+        // Build robust git grep command:
+        // -I: ignore binary files
+        // -l: print just file names
+        // -F: interpret pattern as a fixed string (not regex)
+        // -i: ignore case when caseSensitive is false
+        const flags = ["-I", "-l", "-F"]; // always apply these
+        if (!argumentContext.caseSensitive) flags.unshift("-i");
+
+        // Safely single-quote the keyword for the shell
+        const quotedKeyword = `'${keyword.replace(/'/g, "'\\''")}'`;
+
+        const command = `cd ${workspace} && git grep ${flags.join(" ")} -- ${quotedKeyword}`;
+
+        const stdout = String(execSync(command, { encoding: 'utf8' }));
+        stdout.split('\n').filter(name => name).forEach(path => {
             if (!paths.includes(path)) {
                 paths.push(path)
             }

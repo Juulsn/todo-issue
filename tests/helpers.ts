@@ -16,9 +16,9 @@ export async function testTodoChange(diffFolder: string, file: string, expects: 
 
     const current = currentTaskSystem();
 
-    if (expects.addTodo !== false) expect(current.addTodo).toBeCalledTimes(expects.addTodo ? expects.addTodo : 0)
-    if (expects.addReferenceTodo !== false) expect(current.addReferenceTodo).toBeCalledTimes(expects.addReferenceTodo ? expects.addReferenceTodo : 0)
-    if (expects.reopenTodo !== false) expect(current.reopenTodo).toBeCalledTimes(expects.reopenTodo ? expects.reopenTodo : 0)
-    if (expects.closeTodo !== false) expect(current.closeTodo).toBeCalledTimes(expects.closeTodo ? expects.closeTodo : 0)
-    if (expects.updateTodo !== false) expect(current.updateTodo).toBeCalledTimes(expects.updateTodo ? expects.updateTodo : 0)
+    if (expects.addTodo !== false) expect(current.addTodo).toHaveBeenCalledTimes(expects.addTodo ? expects.addTodo : 0)
+    if (expects.addReferenceTodo !== false) expect(current.addReferenceTodo).toHaveBeenCalledTimes(expects.addReferenceTodo ? expects.addReferenceTodo : 0)
+    if (expects.reopenTodo !== false) expect(current.reopenTodo).toHaveBeenCalledTimes(expects.reopenTodo ? expects.reopenTodo : 0)
+    if (expects.closeTodo !== false) expect(current.closeTodo).toHaveBeenCalledTimes(expects.closeTodo ? expects.closeTodo : 0)
+    if (expects.updateTodo !== false) expect(current.updateTodo).toHaveBeenCalledTimes(expects.updateTodo ? expects.updateTodo : 0)
 }

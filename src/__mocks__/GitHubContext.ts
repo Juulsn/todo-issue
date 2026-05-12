@@ -1,19 +1,10 @@
-import {context as github} from "@actions/github";
-import {Octokit} from "@octokit/rest";
-import {repoObject} from "../RepoContext";
+// Lightweight Jest mock for GitHubContext used in tests.
+// Avoid importing ESM-only packages here to keep Jest (CJS) happy.
 
-const octokit = new Octokit({auth: process.env.PRIVAT_READ_TOKEN ?? process.env.GITHUB_TOKEN})
+export const getUsername = jest.fn(() => "TestUser");
 
-github.eventName = 'push'
-
-export const getUsername = jest.fn(() => "TestUser")
-
+// In production this returns a unified diff string from GitHub.
+// For tests we don't need a real API call — return an empty diff by default.
 export const getDiffFile = jest.fn(async () => {
-    const diff = await octokit.repos.compareCommitsWithBasehead({
-        ...repoObject,
-        basehead: `${process.env.LAST_GITHUB_SHA}...${process.env.GITHUB_SHA}`,
-        headers: {Accept: 'application/vnd.github.diff'},
-        method: 'GET'
-    });
-    return diff.data;
-})
+  return "" as any;
+});
