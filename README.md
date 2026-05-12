@@ -1,22 +1,8 @@
-# todo-issue[action]
+# todo-issue
 
----
+`todo-issue` is a GitHub Action that turns configured TODO-style comments into GitHub Issues.
 
-## Disclosure
-
-Huge thanks to [JasonEtco](https://github.com/JasonEtco)! After he decided to shut down
-his [todo[bot]](https://todo.jasonet.co/) I've looked around for alternatives but decided to create a new
-implementation. Parts of his work can be found in this repository.
-
-## Usage
-
-The **todo-issue** action is super easy to use. Once you've [set up the action](#setup), simply push some code (via
-commit or pull request). If the code you pushed includes one of the configured keywords (default is `TODO`), then the
-action will either
-**create** a new, **close**, **update** or **add a reference** to an existing issue for you using the comment you wrote
-or changed in your code!
-
-If I pushed this:
+When a pushed diff contains a configured keyword, the action creates, closes, updates, reopens, or references an issue based on how the comment changed.
 
 ```js
 /**
@@ -28,20 +14,7 @@ function getWheel() {
 }
 ```
 
-**todo-issue** would create a new issue:
-
-![preview](https://user-images.githubusercontent.com/25909319/174055277-02e2d60b-df35-42fe-b9c0-ee6ad399dfb2.png)
-
-**Note:** While the above example is in javascript, **todo-issue** works in any language as long as you provide a
-valid [styling](#Styling).
-
 ## Setup
-
-There are a couple of [configuration options](#available-options) in case you need to change the default behaviour.
-
-The defaults are likely fine for most projects, so you might not need to change them.
-
-This yml is a good starting point. You should not tweak the triggers, except for the branch
 
 ```yml
 name: Create issues from TODOs
@@ -53,23 +26,21 @@ on:
         default: false
         required: false
         type: boolean
-        description: Enable, if you want to import all TODOs. Runs on checked out branch! Only use if you're sure what you are doing.
+        description: Import all TODOs from the checked out branch.
   push:
-    branches: # do not set multiple branches, todos might be added and then get referenced by themselves in case of a merge
+    branches:
       - main
       - master
 
 permissions:
   issues: write
-  repository-projects: read
   contents: read
 
 jobs:
   todos:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Run Issue Bot
         uses: juulsn/todo-issue@main
@@ -79,58 +50,60 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Available options
+## Options
 
-| Name              | Type                        | Description                                                                                                                                                                                                                                       | Default    |
-|-------------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| `autoAssign`      | `boolean, string[], string` | Should **todo-issue** automatically assign a user to the new issue? If `true`, it'll assign whoever pushed the code. If a string, it'll assign that user by username. You can also give it an array of usernames or `false` to not assign anyone. | `true`     |
-| `keywords`        | `string[]`                  | The keyword(s) to use to generate issue titles                                                                                                                                                                                                    | `['TODO']` |
-| `bodyKeywords`    | `string[]`                  | If this is in the line right after the main keyword, it will become the generated issue body.                                                                                                                                                     | `[]`       |
-| `blobLines`       | `number, boolean`           | The max number of lines of code to show, starting from the line with the keyword. Can disable blob at all.                                                                                                                                        | `5`        |
-| `blobLinesBefore` | `number`                    | The max number of lines of code to show before the line with the keyword.                                                                                                                                                                         | `0`        |
-| `caseSensitive`   | `boolean`                   | Should the keyword be case sensitive?                                                                                                                                                                                                             | `true`     |
-| `label`           | `boolean, string[]`         | Add a label to the new issue. If true, add the `todo` label. If false, don't add any label.You can also give it a label name or an array of label names.                                                                                          | `true`     |
-| `reopenClosed`    | `boolean`                   | If an issue already exists and is closed, reopen it. Note: if set to false, no new issue will be created.                                                                                                                                         | `true`     |
-| `excludePattern`  | `string`                    | Exclude certain files and/or directories. Should be a valid regular expression.                                                                                                                                                                   | `null`     |
-| `titleSimilarity` | `number, false`             | Number in percent of similarity which should be used for merging issues on creation.                                                                                                                                                              | `80`       |
+| Name              | Type                        | Description                                                                                                                            | Default    |
+|-------------------|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------|------------|
+| `autoAssign`      | `boolean, string[], string` | Assign new issues. `true` assigns the commit author; a string or list assigns specific users; `false` disables assignment.             | `true`     |
+| `keywords`        | `string[]`                  | Keywords that produce issue titles.                                                                                                    | `TODO`     |
+| `bodyKeywords`    | `string[]`                  | Keywords allowed on following comment lines for issue bodies. Empty means same-prefix following comment lines become the body.         | empty      |
+| `blobLines`       | `number, false`             | Number of code lines to include in the generated link range.                                                                           | `5`        |
+| `blobLinesBefore` | `number`                    | Number of code lines before the TODO line to include in the generated link range.                                                       | `0`        |
+| `caseSensitive`   | `boolean`                   | Match keywords case-sensitively.                                                                                                       | `true`     |
+| `label`           | `boolean, string[]`         | Add labels. `true` creates/uses `todo :spiral_notepad:`, a string/list uses custom labels, and `false` disables labels.                | `true`     |
+| `reopenClosed`    | `boolean`                   | Reopen a matching closed issue instead of creating a duplicate reference only.                                                          | `true`     |
+| `excludePattern`  | `string`                    | Regex for files or directories to exclude.                                                                                             | empty      |
+| `titleSimilarity` | `number, false`             | Similarity percentage used to merge new TODOs into existing issues or detect small title edits.                                         | `80`       |
 
-### Labels
+## Labels
 
-Add labels with \[square brackets\] at the end of a comment, to tag your issue with these tag
+Add labels with square brackets at the end of a comment:
 
-```
+```cs
 // TODO make this button red [frontend]
-// this button should be red to clearify something
+// this button should be red to clarify something
 ```
 
-The above comment will add a frontend label to your GitHub Issue
+That TODO creates or references an issue with the `frontend` label.
 
-### Import all
+## Import All
 
-There is also an option to import all TODOs to GitHub Issues by running the workflow manually in the actions tab.
+Run the workflow manually with `importAll: true` to import all TODOs from the checked out branch.
 
-**Note:** This can't be undone and should be used super carefully. Don't forget to set your exclude paths in the
-excludePattern regex.
+This cannot be undone automatically, so set `excludePattern` carefully before running it.
 
-### Styling
+## Styling
 
-There are not many things to pay attention to.
+- Only symbols and whitespace may appear before the keyword.
+- Body lines must use the exact same prefix as the title line.
 
-- In front of a keyword only symbols and whitespace are allowed
-- If you want the body of a comment to be added to the issue, you have to use the exact same characters as in front of
-  the title keyword
-
-For instance this:
-
-```
+```cs
 //+TODO We have to do something about this
 //-there is an error at line 28
 ```
 
-would result in a new issue without a body because `//+` is not equal to `//-` (also counts for whitespace!)
+The second line is not included as body text because `//+` and `//-` differ.
 
-### Task Systems
+## Development
 
-Currently, the bot only supports GitHub Issues. However, all requests to the APIs are handled through an interface, 
-which makes it easy to support multiple.
-If you want to add support for another task system, you are welcome to contribute and / or file an issue
+The project is a clean .NET solution:
+
+- `src/TodoIssue.Core` contains parsing, matching, templating, and the task-system ports.
+- `src/TodoIssue.Action` contains the GitHub Action shell and GitHub REST integration.
+- `tests/TodoIssue.Tests` contains behavior tests using the original diff fixtures.
+
+Run everything with:
+
+```bash
+dotnet test TodoIssue.slnx
+```

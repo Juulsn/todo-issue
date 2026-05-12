@@ -65,5 +65,8 @@ typings/
 
 #Idea
 /.idea
-/lib/
-/dist/locales/
+
+# .NET
+bin/
+obj/
+TestResults/

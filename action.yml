@@ -37,6 +37,28 @@ inputs:
   reopenClosed:
     description: Boolean whether a issue should be reopened if it was already closed, but the title is similar.
     required: false
+  taskSystem:
+    description: Task system to use. Currently only GitHub is supported.
+    required: false
+    default: 'GitHub'
 runs:
-  using: 'node16'
-  main: 'dist/index.js'
+  using: 'composite'
+  steps:
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    - name: Run todo-issue
+      shell: bash
+      run: dotnet run --project "$GITHUB_ACTION_PATH/src/TodoIssue.Action/TodoIssue.Action.csproj" --configuration Release --no-launch-profile
+      env:
+        INPUT_KEYWORDS: ${{ inputs.keywords }}
+        INPUT_BODYKEYWORDS: ${{ inputs.bodyKeywords }}
+        INPUT_AUTOASSIGN: ${{ inputs.autoAssign }}
+        INPUT_EXCLUDEPATTERN: ${{ inputs.excludePattern }}
+        INPUT_CASESENSITIVE: ${{ inputs.caseSensitive }}
+        INPUT_LABEL: ${{ inputs.label }}
+        INPUT_BLOBLINES: ${{ inputs.blobLines }}
+        INPUT_BLOBLINESBEFORE: ${{ inputs.blobLinesBefore }}
+        INPUT_TITLESIMILARITY: ${{ inputs.titleSimilarity }}
+        INPUT_REOPENCLOSED: ${{ inputs.reopenClosed }}
+        INPUT_TASKSYSTEM: ${{ inputs.taskSystem }}
